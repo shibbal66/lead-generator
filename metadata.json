@@ -1,0 +1,8 @@
+{
+  "name": "Lead Generator Pro",
+  "description": "A modern, professional lead management dashboard featuring a Kanban board, LinkedIn enrichment, and detailed lead tracking.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
