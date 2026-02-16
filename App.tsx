@@ -54,48 +54,12 @@ import {
   FolderPlus,
   LogOut
 } from "lucide-react";
-<<<<<<< Updated upstream
-import * as XLSX from "xlsx";
-
-=======
-import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
-
-import AnalyticsDashboard from "./components/AnalyticsDashboard";
-import DealModal from "./components/DealModal";
-import KanbanBoard from "./components/KanbanBoard";
-import LeadDetailDrawer from "./components/LeadDetailDrawer";
-import LeadModal from "./components/LeadModal";
-import MyProjectsDashboard from "./components/MyProjectsDashboard";
-import ProjectModal from "./components/ProjectModal";
-import ShareModal from "./components/ShareModal";
-import TrashBin from "./components/TrashBin";
-import TaskModal from "./components/TaskModal";
-import TodoDashboard from "./components/TodoDashboard";
-import SentTasksDashboard from "./components/SentTasksDashboard";
-import SettingsDashboard from "./components/SettingsDashboard";
-import TrashModal from "./components/TrashModal";
-import UserManagementDashboard from "./components/UserManagementDashboard";
-import { api } from "./services/api";
 import { useAppDispatch } from "./store/hooks";
 import { signOutLocal } from "./store/slices/authSlice";
-import { translations, Language } from "./translations";
-import {
-  Lead,
-  PipelineStage,
-  SortField,
-  SortOrder,
-  LeadFile,
-  Owner,
-  Task,
-  Todo,
-  Project,
-  UserSettings,
-  Deal
-} from "./types";
 
->>>>>>> Stashed changes
+
 type ViewType =
   | "pipeline"
   | "analytics"

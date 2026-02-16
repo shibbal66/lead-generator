@@ -1,13 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-<<<<<<< Updated upstream
 import App from "./App";
-=======
 import { Provider } from "react-redux";
 
 import AppRoutes from "./AppRoutes";
 import { store } from "./store";
->>>>>>> Stashed changes
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
