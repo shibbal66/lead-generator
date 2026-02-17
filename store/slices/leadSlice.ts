@@ -17,6 +17,7 @@ export type LeadRecord = {
   socialLinks?: Record<string, string>;
   status: LeadStatus;
   projectId?: string;
+  ownerName?: string;
   commentCount?: number | string;
   createdAt?: string;
   updatedAt?: string;
@@ -102,6 +103,7 @@ export type UpdateLeadPayload = {
 export type GetLeadsParams = {
   projectId?: string;
   ownerId?: string;
+  status?: LeadStatus;
   search?: string;
   orderBy?: string;
   page?: number;

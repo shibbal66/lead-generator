@@ -13,6 +13,7 @@ type ForgotPasswordPageProps = {
   isSubmitted?: boolean;
   successMessage?: string | null;
   errorMessage?: string | null;
+  initialEmail?: string;
 };
 
 const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
@@ -21,7 +22,8 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
   isLoading = false,
   isSubmitted = false,
   successMessage,
-  errorMessage
+  errorMessage,
+  initialEmail = ""
 }) => {
   const [toastState, setToastState] = useState<{ open: boolean; type: "success" | "error" | "info"; message: string }>({
     open: false,
@@ -38,8 +40,9 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
   );
 
   const formik = useFormik({
+    enableReinitialize: true,
     initialValues: {
-      email: ""
+      email: initialEmail
     },
     validationSchema: schema,
     onSubmit: (values) => {

@@ -35,7 +35,6 @@ const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
     () =>
       Yup.object({
         email: Yup.string().email("Please enter a valid email address.").required("Email is required."),
-        code: Yup.string().min(4, "Reset code looks too short.").required("Reset code is required."),
         newPassword: Yup.string()
           .min(8, "Password must be at least 8 characters.")
           .matches(/[A-Z]/, "Password must include at least one uppercase letter.")
@@ -53,14 +52,25 @@ const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
     enableReinitialize: true,
     initialValues: {
       email: emailFromUrl || "",
-      code: codeFromUrl || "",
       newPassword: "",
       confirmPassword: ""
     },
     validationSchema: schema,
     onSubmit: (values) => {
-      console.log("[ResetPassword] submit", { email: values.email, codeLength: values.code.length, passwordLength: values.newPassword.length });
-      onSubmit({ email: values.email, code: values.code, newPassword: values.newPassword });
+      if (!codeFromUrl) {
+        setToastState({
+          open: true,
+          type: "error",
+          message: "Reset link is invalid or incomplete (missing code)."
+        });
+        return;
+      }
+      console.log("[ResetPassword] submit", {
+        email: values.email,
+        codeLength: codeFromUrl.length,
+        passwordLength: values.newPassword.length
+      });
+      onSubmit({ email: values.email, code: codeFromUrl, newPassword: values.newPassword });
     }
   });
 
@@ -95,7 +105,7 @@ const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
       />
       <AuthLayout
         title="Set new password"
-        subtitle="Use the code from your email and choose a new password."
+        subtitle="Use the reset link from your email and choose a new password."
         footerText="Back to login?"
         footerActionText="Sign in"
         onFooterAction={onBackToSignIn}
@@ -124,18 +134,6 @@ const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
               onBlur={() => formik.setFieldTouched("email", true)}
               error={formik.errors.email}
               touched={formik.touched.email}
-            />
-
-            <AuthInput
-              id="reset-password-code"
-              type="text"
-              label="Code"
-              placeholder="Enter reset code"
-              value={formik.values.code}
-              onChange={(value) => formik.setFieldValue("code", value)}
-              onBlur={() => formik.setFieldTouched("code", true)}
-              error={formik.errors.code}
-              touched={formik.touched.code}
             />
 
             <AuthInput

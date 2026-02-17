@@ -13,14 +13,24 @@ interface TaskModalProps {
 const TaskModal: React.FC<TaskModalProps> = ({ owner, onClose, onAssign, lang }) => {
   const [taskText, setTaskText] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [deadlineError, setDeadlineError] = useState("");
   const [isListening, setIsListening] = useState(false);
 
   const t = useMemo(() => translations[lang], [lang]);
+  const today = new Date().toISOString().split("T")[0];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskText.trim()) return;
-    onAssign(taskText, deadline);
+    if (!deadline) {
+      setDeadlineError(lang === "de" ? "Deadline ist erforderlich." : "Deadline is required.");
+      return;
+    }
+    if (deadline < today) {
+      setDeadlineError(lang === "de" ? "Deadline darf nicht in der Vergangenheit liegen." : "Deadline cannot be a past date.");
+      return;
+    }
+    onAssign(taskText.trim(), deadline);
     onClose();
   };
 
@@ -121,11 +131,27 @@ const TaskModal: React.FC<TaskModalProps> = ({ owner, onClose, onAssign, lang })
               <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="date"
+                required
                 value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
+                min={today}
+                onChange={(e) => {
+                  setDeadline(e.target.value);
+                  if (!e.target.value) {
+                    setDeadlineError(lang === "de" ? "Deadline ist erforderlich." : "Deadline is required.");
+                    return;
+                  }
+                  if (e.target.value < today) {
+                    setDeadlineError(
+                      lang === "de" ? "Deadline darf nicht in der Vergangenheit liegen." : "Deadline cannot be a past date."
+                    );
+                    return;
+                  }
+                  setDeadlineError("");
+                }}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
               />
             </div>
+            {deadlineError && <p className="mt-1 text-[11px] font-semibold text-red-500">{deadlineError}</p>}
           </div>
 
           <button

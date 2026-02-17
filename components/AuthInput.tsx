@@ -11,6 +11,7 @@ type AuthInputProps = {
   onBlur?: () => void;
   error?: string;
   touched?: boolean;
+  disabled?: boolean;
 };
 
 const AuthInput: React.FC<AuthInputProps> = ({
@@ -22,7 +23,8 @@ const AuthInput: React.FC<AuthInputProps> = ({
   onChange,
   onBlur,
   error,
-  touched
+  touched,
+  disabled = false
 }) => {
   const hasError = Boolean(error && touched);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -45,6 +47,7 @@ const AuthInput: React.FC<AuthInputProps> = ({
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
+          disabled={disabled}
           className={`w-full rounded-xl border bg-gray-50/70 px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
             hasError ? "border-red-300 focus:ring-red-400" : "border-gray-200 focus:ring-blue-500"
           } ${isPasswordField ? "pr-11" : ""}`}

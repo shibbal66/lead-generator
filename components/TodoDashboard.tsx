@@ -38,6 +38,9 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
   const [deadlineError, setDeadlineError] = useState("");
   const [selectedLeadId, setSelectedLeadId] = useState("");
   const [selectedOwnerId, setSelectedOwnerId] = useState("");
+  const [textError, setTextError] = useState("");
+  const [ownerError, setOwnerError] = useState("");
+  const [leadError, setLeadError] = useState("");
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -57,20 +60,35 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
 
   const handleAddTodo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) return;
-    if (deadline && deadline < today) {
+    const summary = text.trim();
+
+    setTextError(summary ? "" : lang === "de" ? "Aufgabe ist erforderlich." : "Task is required.");
+    setOwnerError(selectedOwnerId ? "" : lang === "de" ? "Verantwortliche Person ist erforderlich." : "Owner is required.");
+    setLeadError(selectedLeadId ? "" : lang === "de" ? "Lead ist erforderlich." : "Lead is required.");
+    setDeadlineError(
+      !deadline
+        ? lang === "de"
+          ? "Deadline ist erforderlich."
+          : "Deadline is required."
+        : deadline < today
+          ? lang === "de"
+            ? "Deadline darf nicht in der Vergangenheit liegen."
+            : "Deadline cannot be a past date."
+          : ""
+    );
+
+    if (!summary || !selectedOwnerId || !selectedLeadId || !deadline) return;
+    if (deadline < today) {
       setDeadlineError(lang === "de" ? "Deadline darf nicht in der Vergangenheit liegen." : "Deadline cannot be a past date.");
       return;
     }
-    const assignedTo = selectedOwnerId || currentUserId;
-    if (!assignedTo) return;
 
     await dispatch(
       createTask({
-        description: text.trim(),
-        assignedTo,
-        leadId: selectedLeadId || undefined,
-        deadline: deadline || undefined,
+        description: summary,
+        assignedTo: selectedOwnerId,
+        leadId: selectedLeadId,
+        deadline,
         completed: false
       })
     );
@@ -139,10 +157,15 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                   <input
                     type="text"
                     value={text}
-                    onChange={(e) => setText(e.target.value)}
+                    required
+                    onChange={(e) => {
+                      setText(e.target.value);
+                      if (e.target.value.trim()) setTextError("");
+                    }}
                     placeholder={t.todos.inputPlaceholder}
                     className="w-full px-4 py-3.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-sm font-medium"
                   />
+                  {textError && <p className="mt-1 text-[11px] font-semibold text-red-500">{textError}</p>}
                 </div>
 
                 <div className="relative">
@@ -152,11 +175,15 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                   <div className="relative">
                     <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                     <select
+                      required
                       value={selectedOwnerId}
-                      onChange={(e) => setSelectedOwnerId(e.target.value)}
+                      onChange={(e) => {
+                        setSelectedOwnerId(e.target.value);
+                        if (e.target.value) setOwnerError("");
+                      }}
                       className="w-full pl-9 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-xs font-bold text-gray-600 appearance-none"
                     >
-                      <option value="">{t.todos.myself}</option>
+                      <option value="">{lang === "de" ? "Person auswählen" : "Select owner"}</option>
                       {owners
                         .filter((owner) => owner.id !== currentUserId)
                         .map((owner) => (
@@ -166,6 +193,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                         ))}
                     </select>
                   </div>
+                  {ownerError && <p className="mt-1 text-[11px] font-semibold text-red-500">{ownerError}</p>}
                 </div>
 
                 <div className="relative">
@@ -175,11 +203,15 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                   <div className="relative">
                     <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                     <select
+                      required
                       value={selectedLeadId}
-                      onChange={(e) => setSelectedLeadId(e.target.value)}
+                      onChange={(e) => {
+                        setSelectedLeadId(e.target.value);
+                        if (e.target.value) setLeadError("");
+                      }}
                       className="w-full pl-9 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-xs font-bold text-gray-600 appearance-none"
                     >
-                      <option value="">{t.todos.noLead}</option>
+                      <option value="">{lang === "de" ? "Lead auswählen" : "Select lead"}</option>
                       {leads.map((l) => (
                         <option key={l.id} value={l.id}>
                           {l.firstName} {l.lastName}
@@ -187,6 +219,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                       ))}
                     </select>
                   </div>
+                  {leadError && <p className="mt-1 text-[11px] font-semibold text-red-500">{leadError}</p>}
                 </div>
 
                 <div className="relative">
@@ -197,6 +230,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                     <input
                       type="date"
+                      required
                       value={deadline}
                       min={today}
                       onChange={(e) => {
@@ -219,7 +253,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                 <div className="flex items-end">
                   <button
                     type="submit"
-                    disabled={!text.trim()}
+                    disabled={!text.trim() || !selectedOwnerId || !selectedLeadId || !deadline}
                     className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     <Send size={16} /> {t.todos.save}

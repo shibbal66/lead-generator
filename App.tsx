@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { Lead, PipelineStage, SortField, SortOrder, LeadFile, Owner, Task, Todo, Project, UserSettings, Deal, DealType } from "./types";
 import { api } from "./services/api";
+import { leadApi } from "./services/leadApi";
 import KanbanBoard from "./components/KanbanBoard";
 import LeadDetailDrawer from "./components/LeadDetailDrawer";
 import LeadModal from "./components/LeadModal";
@@ -59,7 +60,12 @@ import { getUsers } from "./store/actions/userActions";
 import { createDeal as createDealApiAction } from "./store/actions/dealActions";
 import { createProject as createProjectApiAction, getProjects as getProjectsAction } from "./store/actions/projectActions";
 import { CreateProjectPayload } from "./store/slices/projectSlice";
-import { createComment as createCommentAction } from "./store/actions/commentActions";
+import type { LeadRecord } from "./store/slices/leadSlice";
+import {
+  createComment as createCommentAction,
+  deleteComment as deleteCommentAction,
+  updateComment as updateCommentAction
+} from "./store/actions/commentActions";
 
 
 type ViewType =
@@ -74,8 +80,10 @@ type ViewType =
 const App: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const hasBootstrappedRef = useRef(false);
   const [activeView, setActiveView] = useState<ViewType>("pipeline");
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [deletedLeads, setDeletedLeads] = useState<Lead[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -115,16 +123,53 @@ const App: React.FC = () => {
   const currentLang = useMemo(() => userSettings?.language || "de", [userSettings]);
   const t = useMemo(() => translations[currentLang], [currentLang]);
 
-  useEffect(() => {
-    fetchData();
-    dispatch(getUsers({ page: 1, limit: 200 }));
-    dispatch(getProjectsAction({ page: 1, limit: 200 }));
-    if ("Notification" in window) {
-      Notification.requestPermission();
-    }
-  }, [dispatch]);
+  const mapStatusToPipeline = (status?: string): PipelineStage => {
+    if (status === "DELETED") return PipelineStage.TRASH;
+    if (status === "CONTACTED") return PipelineStage.CONTACTED;
+    if (status === "QUALIFIED") return PipelineStage.QUALIFIED;
+    if (status === "NEGOTIATION") return PipelineStage.NEGOTIATION;
+    if (status === "CLOSED") return PipelineStage.CLOSED;
+    return PipelineStage.IDENTIFIED;
+  };
 
-  useEffect(() => {
+  const mapLeadRecordToUi = useCallback(
+    (record: LeadRecord): Lead => {
+      const notFoundText = currentLang === "de" ? "Nicht gefunden" : "Not found";
+      const commentCount =
+        typeof record.commentCount === "number"
+          ? record.commentCount
+          : typeof record.commentCount === "string"
+            ? Number(record.commentCount) || 0
+            : 0;
+
+      return {
+        id: record.id,
+        firstName: record.firstName || notFoundText,
+        lastName: record.lastName || notFoundText,
+        currentPosition: record.position || notFoundText,
+        company: record.company || notFoundText,
+        linkedinUrl: record.socialLinks?.linkedin || "",
+        facebookUrl: record.socialLinks?.facebook || "",
+        instagramUrl: record.socialLinks?.instagram || "",
+        tiktokUrl: record.socialLinks?.tiktok || "",
+        twitterUrl: record.socialLinks?.twitter || "",
+        ownerName: users.find((user) => user.id === record.ownerId)?.name || record.ownerName || notFoundText,
+        phone: record.phone || notFoundText,
+        email: record.email || notFoundText,
+        birthday: record.birthday || "",
+        pipelineStage: mapStatusToPipeline(record.status),
+        projectId: record.projectId,
+        createdAt: record.createdAt || "",
+        updatedAt: record.updatedAt || record.createdAt || "",
+        commentCount,
+        comments: [],
+        files: []
+      };
+    },
+    [currentLang, users]
+  );
+
+  const refreshActiveLeads = useCallback(() => {
     if (activeView !== "pipeline") return;
     const ownerId = ownerFilter === "All" ? undefined : users.find((user) => user.name === ownerFilter)?.id;
     const params = {
@@ -137,7 +182,34 @@ const App: React.FC = () => {
     };
     console.log("[Dashboard] getLeads params", params);
     dispatch(getLeadsAction(params));
-  }, [activeView, dispatch, search, ownerFilter, projectFilter, sortField, users]);
+  }, [activeView, dispatch, ownerFilter, projectFilter, search, sortField, users]);
+
+  const fetchDeletedLeads = useCallback(async () => {
+    try {
+      const response = await leadApi.getLeads({ status: "DELETED", page: 1, limit: 200 });
+      console.log("[Trash] fetched deleted leads", response.leads.length);
+      setDeletedLeads(response.leads.map(mapLeadRecordToUi));
+    } catch (error) {
+      console.error("[Trash] failed to fetch deleted leads", error);
+    }
+  }, [mapLeadRecordToUi]);
+
+  useEffect(() => {
+    if (hasBootstrappedRef.current) return;
+    hasBootstrappedRef.current = true;
+
+    fetchData();
+    dispatch(getUsers({ page: 1, limit: 200 }));
+    dispatch(getProjectsAction({ page: 1, limit: 200 }));
+    fetchDeletedLeads();
+    if ("Notification" in window) {
+      Notification.requestPermission();
+    }
+  }, [dispatch, fetchDeletedLeads]);
+
+  useEffect(() => {
+    refreshActiveLeads();
+  }, [refreshActiveLeads]);
 
   useEffect(() => {
     if (!isModalOpen) return;
@@ -180,59 +252,8 @@ const App: React.FC = () => {
   }, [leadRecords.length, leadsListStatus]);
 
   useEffect(() => {
-    const ownerMap = new Map(users.map((user) => [user.id, user.name]));
-    const notFoundText = currentLang === "de" ? "Nicht gefunden" : "Not found";
-    const getCommentCount = (record: { commentCount?: number | string; comments?: unknown[] }) => {
-      if (typeof record.commentCount === "number") return record.commentCount;
-      if (typeof record.commentCount === "string") {
-        const parsed = Number(record.commentCount);
-        return Number.isNaN(parsed) ? 0 : parsed;
-      }
-      if (Array.isArray(record.comments)) return record.comments.length;
-      return 0;
-    };
-    const statusToPipeline = (status?: string): PipelineStage => {
-      if (status === "CONTACTED") return PipelineStage.CONTACTED;
-      if (status === "QUALIFIED") return PipelineStage.QUALIFIED;
-      if (status === "NEGOTIATION") return PipelineStage.NEGOTIATION;
-      if (status === "CLOSED") return PipelineStage.CLOSED;
-      return PipelineStage.IDENTIFIED;
-    };
-
-    const mappedLeads: Lead[] = leadRecords.map((record) => ({
-      id: record.id,
-      firstName: record.firstName || notFoundText,
-      lastName: record.lastName || notFoundText,
-      currentPosition: record.position || notFoundText,
-      company: record.company || notFoundText,
-      linkedinUrl: record.socialLinks?.linkedin || "",
-      facebookUrl: record.socialLinks?.facebook || "",
-      instagramUrl: record.socialLinks?.instagram || "",
-      tiktokUrl: record.socialLinks?.tiktok || "",
-      twitterUrl: record.socialLinks?.twitter || "",
-      ownerName: ownerMap.get(record.ownerId) || notFoundText,
-      phone: record.phone || notFoundText,
-      email: record.email || notFoundText,
-      birthday: record.birthday || "",
-      pipelineStage: statusToPipeline(record.status),
-      projectId: record.projectId,
-      createdAt: record.createdAt || "",
-      updatedAt: record.updatedAt || record.createdAt || "",
-      commentCount: getCommentCount(record as { commentCount?: number | string; comments?: unknown[] }),
-      comments: [],
-      files: []
-    }));
-
-    setLeads(mappedLeads);
-  }, [currentLang, leadRecords, users]);
-
-  const mapStatusToPipeline = (status?: string): PipelineStage => {
-    if (status === "CONTACTED") return PipelineStage.CONTACTED;
-    if (status === "QUALIFIED") return PipelineStage.QUALIFIED;
-    if (status === "NEGOTIATION") return PipelineStage.NEGOTIATION;
-    if (status === "CLOSED") return PipelineStage.CLOSED;
-    return PipelineStage.IDENTIFIED;
-  };
+    setLeads(leadRecords.map(mapLeadRecordToUi));
+  }, [leadRecords, mapLeadRecordToUi]);
 
   const buildUiLeadFromRecord = useCallback(
     (
@@ -354,7 +375,7 @@ const App: React.FC = () => {
     });
   }, [projectFilter, projectOptions]);
 
-  const trashedLeadsCount = useMemo(() => leads.filter((l) => l.pipelineStage === PipelineStage.TRASH).length, [leads]);
+  const trashedLeadsCount = useMemo(() => deletedLeads.length, [deletedLeads]);
 
   const handleExport = () => {
     if (leads.length === 0) return;
@@ -530,13 +551,58 @@ const App: React.FC = () => {
         console.log("[Lead] delete success", result.payload);
         setLeads((prev) => prev.filter((lead) => lead.id !== id));
         setSelectedLead((prev) => (prev?.id === id ? null : prev));
+        await fetchDeletedLeads();
       } else {
         console.error("[Lead] delete rejected", result);
       }
     } catch (error) {
       console.error("[Lead] delete failed", error);
     }
-  }, [dispatch]);
+  }, [dispatch, fetchDeletedLeads]);
+
+  const handleOpenTrashModal = useCallback(async () => {
+    setIsTrashModalOpen(true);
+    await fetchDeletedLeads();
+  }, [fetchDeletedLeads]);
+
+  const handleRestoreDeletedLead = useCallback(
+    async (id: string) => {
+      try {
+        const result = await dispatch(
+          updateLeadAction({
+            leadId: id,
+            data: { status: "IDENTIFIED" }
+          })
+        );
+        if (!updateLeadAction.fulfilled.match(result)) {
+          console.error("[Trash] restore rejected", result);
+          return;
+        }
+        console.log("[Trash] restore success", result.payload);
+        await Promise.all([fetchDeletedLeads(), Promise.resolve(refreshActiveLeads())]);
+      } catch (error) {
+        console.error("[Trash] restore failed", error);
+      }
+    },
+    [dispatch, fetchDeletedLeads, refreshActiveLeads]
+  );
+
+  const handlePermanentDeleteLead = useCallback(
+    async (id: string) => {
+      try {
+        const result = await dispatch(deleteLeadAction(id));
+        if (!deleteLeadAction.fulfilled.match(result)) {
+          console.error("[Trash] permanent delete rejected", result);
+          return;
+        }
+        console.log("[Trash] permanent delete success", result.payload);
+        await fetchDeletedLeads();
+      } catch (error) {
+        console.error("[Trash] permanent delete failed", error);
+      }
+    },
+    [dispatch, fetchDeletedLeads]
+  );
 
   const handleLeadClick = useCallback(
     async (lead: Lead) => {
@@ -754,6 +820,126 @@ const App: React.FC = () => {
       );
     } catch (error) {
       console.error("Failed to add comment:", error);
+    }
+  };
+
+  const handleUpdateComment = async (commentId: string, text: string) => {
+    if (!selectedLead) return;
+    const trimmedText = text.trim();
+    if (!trimmedText) return;
+
+    try {
+      console.log("[Comment] update payload", { commentId, textLength: trimmedText.length });
+      const result = await dispatch(
+        updateCommentAction({
+          commentId,
+          text: trimmedText
+        })
+      );
+
+      if (!updateCommentAction.fulfilled.match(result)) {
+        console.error("[Comment] update rejected", result);
+        setToastState({
+          open: true,
+          type: "error",
+          message:
+            (result.payload as string) ||
+            (currentLang === "de" ? "Kommentar konnte nicht aktualisiert werden." : "Failed to update comment.")
+        });
+        return;
+      }
+
+      const updatedComment = mapApiCommentToUi(result.payload.comment);
+      console.log("[Comment] update success", updatedComment);
+      setLeads((prev) =>
+        prev.map((lead) =>
+          lead.id === selectedLead.id
+            ? {
+                ...lead,
+                comments: lead.comments.map((comment) => (comment.id === commentId ? updatedComment : comment))
+              }
+            : lead
+        )
+      );
+      setSelectedLead((prev) =>
+        prev
+          ? {
+              ...prev,
+              comments: prev.comments.map((comment) => (comment.id === commentId ? updatedComment : comment))
+            }
+          : null
+      );
+      setToastState({
+        open: true,
+        type: "success",
+        message: currentLang === "de" ? "Kommentar aktualisiert." : "Comment updated successfully."
+      });
+    } catch (error) {
+      console.error("[Comment] update failed", error);
+      setToastState({
+        open: true,
+        type: "error",
+        message: error instanceof Error ? error.message : currentLang === "de" ? "Kommentar konnte nicht aktualisiert werden." : "Failed to update comment."
+      });
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!selectedLead) return;
+
+    try {
+      console.log("[Comment] delete payload", { commentId });
+      const result = await dispatch(
+        deleteCommentAction({
+          commentId
+        })
+      );
+
+      if (!deleteCommentAction.fulfilled.match(result)) {
+        console.error("[Comment] delete rejected", result);
+        setToastState({
+          open: true,
+          type: "error",
+          message:
+            (result.payload as string) ||
+            (currentLang === "de" ? "Kommentar konnte nicht gelöscht werden." : "Failed to delete comment.")
+        });
+        return;
+      }
+
+      console.log("[Comment] delete success", result.payload);
+      setLeads((prev) =>
+        prev.map((lead) =>
+          lead.id === selectedLead.id
+            ? {
+                ...lead,
+                comments: lead.comments.filter((comment) => comment.id !== commentId),
+                commentCount: Math.max((lead.commentCount ?? lead.comments.length) - 1, 0)
+              }
+            : lead
+        )
+      );
+      setSelectedLead((prev) =>
+        prev
+          ? {
+              ...prev,
+              comments: prev.comments.filter((comment) => comment.id !== commentId),
+              commentCount: Math.max((prev.commentCount ?? prev.comments.length) - 1, 0)
+            }
+          : null
+      );
+      setToastState({
+        open: true,
+        type: "success",
+        message: currentLang === "de" ? "Kommentar gelöscht." : "Comment deleted successfully."
+      });
+    } catch (error) {
+      console.error("[Comment] delete failed", error);
+      setToastState({
+        open: true,
+        type: "error",
+        message: error instanceof Error ? error.message : currentLang === "de" ? "Kommentar konnte nicht gelöscht werden." : "Failed to delete comment."
+      });
     }
   };
 
@@ -1052,7 +1238,7 @@ const App: React.FC = () => {
                 <Download size={20} className="text-emerald-600 group-hover:scale-110 transition-transform" />
               </button>
 
-              <TrashBin onClick={() => setIsTrashModalOpen(true)} count={trashedLeadsCount} />
+              <TrashBin onClick={handleOpenTrashModal} count={trashedLeadsCount} />
 
               <button
                 onClick={() => setIsProjectModalOpen(true)}
@@ -1093,6 +1279,8 @@ const App: React.FC = () => {
           onClose={() => setSelectedLead(null)}
           onUpdate={handleUpdateLead}
           onAddComment={handleAddComment}
+          onUpdateComment={handleUpdateComment}
+          onDeleteComment={handleDeleteComment}
           onDelete={handleDeleteLead}
           lang={currentLang}
         />
@@ -1115,11 +1303,11 @@ const App: React.FC = () => {
         )}
         {isTrashModalOpen && (
           <TrashModal
-            leads={leads.filter((l) => l.pipelineStage === PipelineStage.TRASH)}
+            leads={deletedLeads}
             lang={currentLang}
             onClose={() => setIsTrashModalOpen(false)}
-            onRestore={(id) => api.updateLead(id, { pipelineStage: PipelineStage.IDENTIFIED }).then(fetchData)}
-            onPermanentDelete={(id) => api.saveLeads(leads.filter((l) => l.id !== id)).then(fetchData)}
+            onRestore={handleRestoreDeletedLead}
+            onPermanentDelete={handlePermanentDeleteLead}
           />
         )}
         {taskingOwner && (

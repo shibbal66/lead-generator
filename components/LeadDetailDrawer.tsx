@@ -38,6 +38,8 @@ import { STAGE_COLORS, STAGES } from "../constants";
 import { api } from "../services/api";
 import { translations, Language } from "../translations";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
+import { useAppDispatch } from "../store/hooks";
+import { updateTask } from "../store/actions/taskActions";
 
 interface LeadDetailDrawerProps {
   lead: Lead | null;
@@ -70,6 +72,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
 }) => {
   if (!lead) return null;
 
+  const dispatch = useAppDispatch();
   const t = useMemo(() => translations[lang], [lang]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +85,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [leadDeals, setLeadDeals] = useState<Deal[]>([]);
   const [leadTodos, setLeadTodos] = useState<Todo[]>([]);
+  const [updatingTodoId, setUpdatingTodoId] = useState<string | null>(null);
 
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState("");
@@ -255,7 +259,35 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
   };
 
   const handleToggleTodo = async (id: string) => {
-    setLeadTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, isCompleted: !todo.isCompleted } : todo)));
+    const targetTodo = leadTodos.find((todo) => todo.id === id);
+    if (!targetTodo) return;
+    const nextCompleted = !targetTodo.isCompleted;
+
+    setLeadTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, isCompleted: nextCompleted } : todo)));
+    setUpdatingTodoId(id);
+
+    try {
+      console.log("[LeadDetailDrawer] update task payload", { taskId: id, completed: nextCompleted });
+      const result = await dispatch(
+        updateTask({
+          taskId: id,
+          data: { completed: nextCompleted }
+        })
+      );
+
+      if (!updateTask.fulfilled.match(result)) {
+        console.error("[LeadDetailDrawer] update task rejected", result);
+        setLeadTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, isCompleted: targetTodo.isCompleted } : todo)));
+        return;
+      }
+
+      console.log("[LeadDetailDrawer] update task success", result.payload.task);
+    } catch (error) {
+      console.error("[LeadDetailDrawer] update task failed", error);
+      setLeadTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, isCompleted: targetTodo.isCompleted } : todo)));
+    } finally {
+      setUpdatingTodoId(null);
+    }
   };
 
   const handleSocialSearch = async () => {
@@ -543,9 +575,11 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                     <div
                       key={todo.id}
                       onClick={() => handleToggleTodo(todo.id)}
-                      className={`flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer transition-all hover:border-indigo-200 ${todo.isCompleted ? "opacity-60" : ""}`}
+                      className={`flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer transition-all hover:border-indigo-200 ${todo.isCompleted ? "opacity-60" : ""} ${updatingTodoId === todo.id ? "pointer-events-none" : ""}`}
                     >
-                      {todo.isCompleted ? (
+                      {updatingTodoId === todo.id ? (
+                        <Loader2 size={18} className="text-indigo-500 animate-spin" />
+                      ) : todo.isCompleted ? (
                         <CheckCircle2 size={18} className="text-emerald-500" />
                       ) : (
                         <Circle size={18} className="text-gray-300" />
@@ -835,6 +869,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                       </div>
                       <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
+                          type="button"
                           onClick={() => {
                             setEditingCommentId(comment.id);
                             setEditingCommentText(comment.text);
@@ -844,6 +879,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           <Edit2 size={12} />
                         </button>
                         <button
+                          type="button"
                           onClick={() => {
                             setCommentToDeleteId(comment.id);
                             setIsCommentDeleteModalOpen(true);
@@ -863,10 +899,11 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           onChange={(e) => setEditingCommentText(e.target.value)}
                         />
                         <div className="flex justify-end space-x-2 mt-2">
-                          <button onClick={() => setEditingCommentId(null)} className="text-xs text-gray-400">
+                          <button type="button" onClick={() => setEditingCommentId(null)} className="text-xs text-gray-400">
                             {t.common.cancel}
                           </button>
                           <button
+                            type="button"
                             onClick={() => {
                               onUpdateComment?.(comment.id, editingCommentText);
                               setEditingCommentId(null);

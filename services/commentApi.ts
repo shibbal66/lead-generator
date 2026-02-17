@@ -1,5 +1,11 @@
 import { BACKEND_URL } from "../config/env";
-import { CommentRecord, CreateCommentPayload, GetCommentsParams } from "../store/slices/commentSlice";
+import {
+  CommentRecord,
+  CreateCommentPayload,
+  DeleteCommentPayload,
+  GetCommentsParams,
+  UpdateCommentPayload
+} from "../store/slices/commentSlice";
 
 type CommentApiResponse = {
   success?: boolean;
@@ -86,6 +92,38 @@ export const commentApi = {
       total: response.total || 0,
       page: response.page || params.page || 1,
       limit: response.limit || params.limit || 10
+    };
+  },
+
+  updateComment: async (payload: UpdateCommentPayload): Promise<{ comment: CommentRecord; message: string }> => {
+    const response = await request(`/comment/${payload.commentId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: toFormBody({
+        text: payload.text
+      })
+    });
+
+    if (!response.comment) {
+      throw new Error("Updated comment payload missing");
+    }
+
+    return {
+      comment: response.comment,
+      message: response.message || "Comment updated successfully"
+    };
+  },
+
+  deleteComment: async (payload: DeleteCommentPayload): Promise<{ commentId: string; message: string }> => {
+    const response = await request(`/comment/${payload.commentId}`, {
+      method: "DELETE"
+    });
+
+    return {
+      commentId: payload.commentId,
+      message: response.message || "Comment deleted successfully"
     };
   }
 };

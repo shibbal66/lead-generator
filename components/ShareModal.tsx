@@ -3,30 +3,42 @@ import { X, Mail, Send, Check, Users, Shield, Loader2 } from "lucide-react";
 
 interface ShareModalProps {
   onClose: () => void;
-  // Added onInvite to props interface to fix TS error in UserManagementDashboard.tsx
-  onInvite?: () => void;
+  onInvite?: (payload: { email: string; role: "EDITOR" | "ADMIN" }) => Promise<void> | void;
 }
 
-// Destructure onInvite from props
 const ShareModal: React.FC<ShareModalProps> = ({ onClose, onInvite }) => {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"Editor" | "Admin">("Editor");
   const [isSending, setIsSending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const normalizedEmail = email.trim();
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
 
-  const handleInvite = (e: React.FormEvent) => {
+  const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!normalizedEmail) {
+      setEmailError("Email is required.");
+      return;
+    }
+    if (!isEmailValid) {
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
 
+    setErrorMessage("");
+    setEmailError("");
     setIsSending(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const apiRole: "EDITOR" | "ADMIN" = role === "Admin" ? "ADMIN" : "EDITOR";
+      await onInvite?.({ email: normalizedEmail, role: apiRole });
       setIsSending(false);
       setIsSuccess(true);
-      // In a real app, this would call POST /api/team/invite
-      // Notify parent of successful invite to refresh team data
-      onInvite?.();
-    }, 1500);
+    } catch (error) {
+      setIsSending(false);
+      setErrorMessage(error instanceof Error ? error.message : "Failed to send invitation");
+    }
   };
 
   if (isSuccess) {
@@ -86,11 +98,20 @@ const ShareModal: React.FC<ShareModalProps> = ({ onClose, onInvite }) => {
                   required
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (emailError) {
+                      const next = e.target.value.trim();
+                      if (!next) setEmailError("Email is required.");
+                      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next)) setEmailError("Please enter a valid email address.");
+                      else setEmailError("");
+                    }
+                  }}
                   placeholder="kollege@unternehmen.de"
                   className="w-full pl-10 pr-4 py-3 border-gray-200 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm outline-none"
                 />
               </div>
+              {emailError && <p className="mt-1 text-xs font-semibold text-red-500">{emailError}</p>}
             </div>
 
             <div>
@@ -129,9 +150,11 @@ const ShareModal: React.FC<ShareModalProps> = ({ onClose, onInvite }) => {
               </p>
             </div>
 
+            {errorMessage && <p className="text-xs font-semibold text-red-500">{errorMessage}</p>}
+
             <button
               type="submit"
-              disabled={isSending || !email}
+              disabled={isSending || !normalizedEmail || !isEmailValid}
               className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSending ? (

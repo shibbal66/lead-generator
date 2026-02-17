@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
 
 import App from "./App";
@@ -15,6 +15,7 @@ import {
   signUp,
   verifyAccount
 } from "./store/actions/authActions";
+import { getInvitationById } from "./store/actions/teamActions";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { clearAuthMessages } from "./store/slices/authSlice";
 
@@ -38,8 +39,10 @@ const SignInRoute: React.FC = () => {
 
   useEffect(() => {
     if (!verifyFlag) return;
-    navigate("/sign-in?verified=1", { replace: true });
-  }, [navigate, verifyFlag]);
+    const query = new URLSearchParams({ verified: "1" });
+    if (email) query.set("email", email);
+    navigate(`/sign-in?${query.toString()}`, { replace: true });
+  }, [email, navigate, verifyFlag]);
 
   useEffect(() => {
     if (!hasVerificationParams || hasTriggeredVerification.current) return;
@@ -50,8 +53,10 @@ const SignInRoute: React.FC = () => {
   useEffect(() => {
     if (!hasVerificationParams) return;
     if (verifyStatus !== "succeeded") return;
-    navigate("/sign-in?verified=1", { replace: true });
-  }, [hasVerificationParams, navigate, verifyStatus]);
+    const query = new URLSearchParams({ verified: "1" });
+    if (email) query.set("email", email);
+    navigate(`/sign-in?${query.toString()}`, { replace: true });
+  }, [email, hasVerificationParams, navigate, verifyStatus]);
 
   return (
     <SignInPage
@@ -60,6 +65,7 @@ const SignInRoute: React.FC = () => {
       onForgotPassword={() => navigate("/forgot-password")}
       isLoading={signInStatus === "loading" || (hasVerificationParams && verifyStatus === "loading")}
       errorMessage={error}
+      initialEmail={email}
       successMessage={
         signedOut
           ? "You have been signed out successfully."
@@ -79,10 +85,18 @@ const SignUpRoute: React.FC = () => {
   const [searchParams] = useSearchParams();
   const email = searchParams.get("email") || "";
   const code = searchParams.get("code") || "";
+  const invitationId = searchParams.get("invitation") || searchParams.get("invitationId");
   const hasVerificationParams = Boolean(email && code);
   const hasTriggeredVerification = useRef(false);
+  const hasTriggeredInvitationLookup = useRef(false);
+  const [lastSubmittedEmail, setLastSubmittedEmail] = useState("");
 
   const { signUpStatus, verifyStatus, signUpMessage, verifyMessage, error } = useAppSelector((state) => state.auth);
+  const {
+    invitation,
+    invitationStatus,
+    error: invitationSliceError
+  } = useAppSelector((state) => state.team);
 
   useEffect(() => {
     dispatch(clearAuthMessages());
@@ -95,20 +109,37 @@ const SignUpRoute: React.FC = () => {
   }, [code, dispatch, email, hasVerificationParams]);
 
   useEffect(() => {
+    if (!invitationId || hasTriggeredInvitationLookup.current) return;
+    hasTriggeredInvitationLookup.current = true;
+    dispatch(getInvitationById(invitationId));
+  }, [dispatch, invitationId]);
+
+  useEffect(() => {
     if (signUpStatus !== "succeeded") return;
-    navigate("/sign-in?verifySent=1", { replace: true });
-  }, [navigate, signUpStatus]);
+    const query = new URLSearchParams({ verifySent: "1" });
+    if (lastSubmittedEmail) query.set("email", lastSubmittedEmail);
+    navigate(`/sign-in?${query.toString()}`, { replace: true });
+  }, [lastSubmittedEmail, navigate, signUpStatus]);
 
   const computedSuccessMessage = verifyMessage || signUpMessage;
   const isLoading = signUpStatus === "loading" || verifyStatus === "loading";
 
   return (
     <SignUpPage
-      onSubmit={(data) => dispatch(signUp(data))}
+      onSubmit={(data) => {
+        setLastSubmittedEmail(data.email);
+        dispatch(signUp(data));
+      }}
       onSwitchToSignIn={() => navigate("/sign-in")}
       isLoading={isLoading}
       errorMessage={error}
       successMessage={computedSuccessMessage}
+      initialEmail={email}
+      invitationId={invitationId}
+      invitationEmail={invitation?.email}
+      invitationRole={invitation?.role}
+      invitationLoading={invitationStatus === "loading"}
+      invitationError={invitationStatus === "failed" ? invitationSliceError : null}
     />
   );
 };
@@ -119,6 +150,7 @@ const ForgotPasswordRoute: React.FC = () => {
   const [searchParams] = useSearchParams();
   const email = searchParams.get("email") || "";
   const code = searchParams.get("code") || "";
+  const [lastForgotEmail, setLastForgotEmail] = useState("");
 
   const hasResetParams = Boolean(email && code);
 
@@ -134,7 +166,9 @@ const ForgotPasswordRoute: React.FC = () => {
         emailFromUrl={email}
         codeFromUrl={code}
         onSubmit={(data) => dispatch(resetPassword(data))}
-        onBackToSignIn={() => navigate("/sign-in")}
+        onBackToSignIn={() =>
+          navigate(`/sign-in${email ? `?email=${encodeURIComponent(email)}` : ""}`)
+        }
         isLoading={resetStatus === "loading"}
         successMessage={resetStatus === "succeeded" ? resetMessage : null}
         errorMessage={error}
@@ -144,12 +178,19 @@ const ForgotPasswordRoute: React.FC = () => {
 
   return (
     <ForgotPasswordPage
-      onSubmit={(data) => dispatch(forgotPassword(data))}
-      onBackToSignIn={() => navigate("/sign-in")}
+      onSubmit={(data) => {
+        setLastForgotEmail(data.email);
+        dispatch(forgotPassword(data));
+      }}
+      onBackToSignIn={() => {
+        const prefillEmail = lastForgotEmail || email;
+        navigate(`/sign-in${prefillEmail ? `?email=${encodeURIComponent(prefillEmail)}` : ""}`);
+      }}
       isLoading={forgotStatus === "loading"}
       isSubmitted={forgotStatus === "succeeded"}
       successMessage={forgotMessage}
       errorMessage={error}
+      initialEmail={email}
     />
   );
 };
@@ -172,7 +213,9 @@ const ResetPasswordRoute: React.FC = () => {
       emailFromUrl={email}
       codeFromUrl={code}
       onSubmit={(data) => dispatch(resetPassword(data))}
-      onBackToSignIn={() => navigate("/sign-in")}
+      onBackToSignIn={() =>
+        navigate(`/sign-in${email ? `?email=${encodeURIComponent(email)}` : ""}`)
+      }
       isLoading={resetStatus === "loading"}
       successMessage={resetStatus === "succeeded" ? resetMessage : null}
       errorMessage={error}

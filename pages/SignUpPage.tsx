@@ -7,11 +7,17 @@ import AuthLayout from "../components/AuthLayout";
 import Toast from "../components/Toast";
 
 type SignUpPageProps = {
-  onSubmit: (data: { fullName: string; email: string; password: string }) => void;
+  onSubmit: (data: { fullName: string; email: string; password: string; invitation?: string }) => void;
   onSwitchToSignIn: () => void;
   isLoading?: boolean;
   errorMessage?: string | null;
   successMessage?: string | null;
+  initialEmail?: string;
+  invitationId?: string | null;
+  invitationEmail?: string;
+  invitationRole?: string;
+  invitationLoading?: boolean;
+  invitationError?: string | null;
 };
 
 const SignUpPage: React.FC<SignUpPageProps> = ({
@@ -19,7 +25,13 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
   onSwitchToSignIn,
   isLoading = false,
   errorMessage,
-  successMessage
+  successMessage,
+  initialEmail = "",
+  invitationId,
+  invitationEmail,
+  invitationRole,
+  invitationLoading = false,
+  invitationError
 }) => {
   const [toastState, setToastState] = useState<{ open: boolean; type: "success" | "error" | "info"; message: string }>({
     open: false,
@@ -45,15 +57,16 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
   );
 
   const formik = useFormik({
+    enableReinitialize: true,
     initialValues: {
       fullName: "",
-      email: "",
+      email: invitationEmail || initialEmail,
       password: ""
     },
     validationSchema: schema,
     onSubmit: (values) => {
       console.log("[SignUp] submit", { fullName: values.fullName, email: values.email, passwordLength: values.password.length });
-      onSubmit(values);
+      onSubmit({ ...values, invitation: invitationId || undefined });
     }
   });
 
@@ -62,6 +75,12 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
     console.error("[SignUp] API error", errorMessage);
     setToastState({ open: true, type: "error", message: errorMessage });
   }, [errorMessage]);
+
+  useEffect(() => {
+    if (!invitationError) return;
+    console.error("[SignUp] invitation error", invitationError);
+    setToastState({ open: true, type: "error", message: invitationError });
+  }, [invitationError]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -93,6 +112,15 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
         footerActionText="Sign in"
         onFooterAction={onSwitchToSignIn}
       >
+        {invitationId && (
+          <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
+            {invitationLoading
+              ? "Validating invitation..."
+              : invitationError
+                ? "Invitation is invalid or expired."
+                : `Invitation detected${invitationRole ? ` (${invitationRole})` : ""}${invitationEmail ? ` for ${invitationEmail}` : ""}.`}
+          </div>
+        )}
         <form onSubmit={formik.handleSubmit} className="space-y-4" noValidate>
           <AuthInput
             id="sign-up-name"
@@ -116,6 +144,7 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
             onBlur={() => formik.setFieldTouched("email", true)}
             error={formik.errors.email}
             touched={formik.touched.email}
+            disabled={Boolean(invitationEmail)}
           />
 
           <AuthInput
@@ -132,7 +161,7 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || (Boolean(invitationId) && (invitationLoading || Boolean(invitationError)))}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold text-sm rounded-xl py-3.5 transition-all shadow-lg shadow-blue-100"
           >
             {isLoading ? "Creating account..." : "Create account"}

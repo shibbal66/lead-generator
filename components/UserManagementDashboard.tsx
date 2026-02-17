@@ -12,8 +12,10 @@ import {
 import { translations, Language } from "../translations";
 import ShareModal from "./ShareModal";
 import Toast from "./Toast";
+import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { deleteTeamMember, getTeamMembers } from "../store/actions/teamActions";
+import { deleteTeamMember, getTeamMembers, inviteTeamMember } from "../store/actions/teamActions";
+import { getUserById } from "../store/actions/userActions";
 
 interface UserManagementDashboardProps {
   lang: Language;
@@ -22,13 +24,17 @@ interface UserManagementDashboardProps {
 const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang }) => {
   const dispatch = useAppDispatch();
   const { members, listStatus, total, limit: apiLimit } = useAppSelector((state) => state.team);
-  const teamId = useAppSelector((state) => state.auth.user?.teamId);
+  const authUserTeamId = useAppSelector((state) => state.auth.user?.teamId);
+  const currentUserId = useAppSelector((state) => state.auth.user?.userId);
+  const selectedUser = useAppSelector((state) => state.users.selectedUser);
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDeleteUser, setPendingDeleteUser] = useState<{ id: string; name: string } | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const limit = 10;
+  const [resolvedTeamId, setResolvedTeamId] = useState<string | undefined>(authUserTeamId);
   const [toastState, setToastState] = useState<{ open: boolean; type: "success" | "error"; message: string }>({
     open: false,
     type: "success",
@@ -40,9 +46,29 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
   const totalPages = Math.max(1, Math.ceil(total / (apiLimit || limit)));
 
   useEffect(() => {
+    if (authUserTeamId) {
+      setResolvedTeamId(authUserTeamId);
+    }
+  }, [authUserTeamId]);
+
+  useEffect(() => {
+    if (resolvedTeamId || !currentUserId) return;
+    console.log("[Team] resolving teamId from getUserById", { currentUserId });
+    void dispatch(getUserById(currentUserId));
+  }, [currentUserId, dispatch, resolvedTeamId]);
+
+  useEffect(() => {
+    if (!selectedUser || selectedUser.id !== currentUserId || !selectedUser.teamId) return;
+    setResolvedTeamId(selectedUser.teamId);
+  }, [currentUserId, selectedUser]);
+
+  useEffect(() => {
+    if (!resolvedTeamId) return;
     setError(null);
-    void dispatch(getTeamMembers({ page, limit, search: search.trim() || undefined }));
-  }, [dispatch, page, search]);
+    const params = { teamId: resolvedTeamId, page, limit, search: search.trim() || undefined };
+    console.log("[Team] get members params", params);
+    void dispatch(getTeamMembers(params));
+  }, [dispatch, limit, page, resolvedTeamId, search]);
 
   useEffect(() => {
     setPage(1);
@@ -51,7 +77,7 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
   const handleDeleteUser = async (userId: string) => {
     setDeletingId(userId);
     setError(null);
-    console.log("[Team] delete member requested", { teamId, userId });
+    console.log("[Team] delete member requested", { teamId: resolvedTeamId, userId });
     const action = await dispatch(deleteTeamMember({ userId }));
     if (deleteTeamMember.fulfilled.match(action)) {
       console.log("[Team] delete member success", action.payload);
@@ -184,7 +210,7 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => handleDeleteUser(user.id)}
+                          onClick={() => setPendingDeleteUser({ id: user.id, name: user.name })}
                           disabled={deletingId === user.id}
                           className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-all"
                           title={t.common.delete}
@@ -204,8 +230,18 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
       {isInviteModalOpen && (
         <ShareModal
           onClose={() => setIsInviteModalOpen(false)}
-          onInvite={() => {
-            void dispatch(getTeamMembers({ page, limit, search: search.trim() || undefined }));
+          onInvite={async ({ email, role }) => {
+            const inviteAction = await dispatch(inviteTeamMember({ email, role }));
+            if (!inviteTeamMember.fulfilled.match(inviteAction)) {
+              throw new Error((inviteAction.payload as string) || "Failed to invite team member");
+            }
+            setToastState({
+              open: true,
+              type: "success",
+              message: inviteAction.payload.message || "Invitation sent"
+            });
+            if (!resolvedTeamId) return;
+            void dispatch(getTeamMembers({ teamId: resolvedTeamId, page, limit, search: search.trim() || undefined }));
           }}
         />
       )}
@@ -237,6 +273,28 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
         type={toastState.type}
         message={toastState.message}
         onClose={() => setToastState((prev) => ({ ...prev, open: false, message: "" }))}
+      />
+      <ConfirmDeleteModal
+        isOpen={Boolean(pendingDeleteUser)}
+        title={lang === "de" ? "Nutzer löschen?" : "Delete user?"}
+        description={
+          pendingDeleteUser
+            ? lang === "de"
+              ? `Möchten Sie ${pendingDeleteUser.name} wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`
+              : `Are you sure you want to delete ${pendingDeleteUser.name}? This action cannot be undone.`
+            : ""
+        }
+        confirmLabel={lang === "de" ? "Löschen" : "Delete"}
+        cancelLabel={lang === "de" ? "Abbrechen" : "Cancel"}
+        onCancel={() => {
+          if (deletingId) return;
+          setPendingDeleteUser(null);
+        }}
+        onConfirm={async () => {
+          if (!pendingDeleteUser) return;
+          await handleDeleteUser(pendingDeleteUser.id);
+          setPendingDeleteUser(null);
+        }}
       />
     </div>
   );

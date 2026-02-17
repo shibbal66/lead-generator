@@ -13,6 +13,7 @@ type SignInPageProps = {
   isLoading?: boolean;
   errorMessage?: string | null;
   successMessage?: string | null;
+  initialEmail?: string;
 };
 
 const SignInPage: React.FC<SignInPageProps> = ({
@@ -21,7 +22,8 @@ const SignInPage: React.FC<SignInPageProps> = ({
   onForgotPassword,
   isLoading = false,
   errorMessage,
-  successMessage
+  successMessage,
+  initialEmail = ""
 }) => {
   const [toastState, setToastState] = useState<{ open: boolean; type: "success" | "error" | "info"; message: string }>({
     open: false,
@@ -41,8 +43,9 @@ const SignInPage: React.FC<SignInPageProps> = ({
   );
 
   const formik = useFormik({
+    enableReinitialize: true,
     initialValues: {
-      email: "",
+      email: initialEmail,
       password: ""
     },
     validationSchema: schema,

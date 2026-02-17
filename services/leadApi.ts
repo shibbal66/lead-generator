@@ -99,6 +99,7 @@ export const leadApi = {
       query.set("projectId", params.projectId);
     }
     if (params?.ownerId) query.set("ownerId", params.ownerId);
+    if (params?.status) query.set("status", params.status);
     if (params?.search) query.set("search", params.search);
     if (params?.orderBy) query.set("orderBy", params.orderBy);
     if (typeof params?.page === "number") query.set("page", String(params.page));
