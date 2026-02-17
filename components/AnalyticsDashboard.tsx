@@ -5,26 +5,27 @@ import {
   PieChart,
   Users,
   Calendar,
-  Filter,
-  Award,
   DollarSign,
   ArrowUpRight,
-  ArrowDownRight,
-  ChevronDown,
-  Search,
-  Target,
   Download,
   FolderKanban,
-  Briefcase,
   Layers,
-  Clock,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from "lucide-react";
 import { Deal, Lead, Owner, DealType, Project, PipelineStage } from "../types";
+import type { AnalyticsDealsData, AnalyticsPipelineData } from "../types";
 import { STAGES, STAGE_COLORS } from "../constants";
 import { translations, Language } from "../translations";
 import ExportDealsModal from "./ExportDealsModal";
 import * as XLSX from "xlsx";
+
+export interface DashboardFilterParams {
+  ownerId?: string;
+  projectId?: string;
+  startDate?: string;
+  endDate?: string;
+}
 
 interface AnalyticsDashboardProps {
   deals: Deal[];
@@ -32,12 +33,55 @@ interface AnalyticsDashboardProps {
   owners: Owner[];
   projects: Project[];
   lang: Language;
+  /** When provided, dashboard uses API data instead of computing from deals/leads */
+  apiDealsData?: AnalyticsDealsData | null;
+  apiPipelineData?: AnalyticsPipelineData | null;
+  apiLoading?: boolean;
+  apiError?: string | null;
+  onFiltersChange?: (params: DashboardFilterParams) => void;
 }
 
 type AnalyticsTab = "deals" | "pipeline";
 
-const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ deals, leads, owners, projects, lang }) => {
+const API_STATUS_TO_STAGE: Record<string, PipelineStage> = {
+  IDENTIFIED: PipelineStage.IDENTIFIED,
+  CONTACTED: PipelineStage.CONTACTED,
+  QUALIFIED: PipelineStage.QUALIFIED,
+  NEGOTIATION: PipelineStage.NEGOTIATION,
+  CLOSED: PipelineStage.CLOSED,
+  TRASH: PipelineStage.TRASH
+};
+
+const API_DEAL_TYPE_TO_ENUM: Record<string, DealType> = {
+  CONSULTING: DealType.CONSULTING,
+  ONLINE_TRAINING: DealType.ONLINE_TRAINING,
+  OFFSITE: DealType.OFFSITE
+};
+
+function initials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "?";
+}
+
+const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
+  deals,
+  leads,
+  owners,
+  projects,
+  lang,
+  apiDealsData,
+  apiPipelineData,
+  apiLoading = false,
+  apiError = null,
+  onFiltersChange
+}) => {
   const t = useMemo(() => translations[lang], [lang]);
+  const isApiMode = onFiltersChange != null;
 
   // View State
   const [activeTab, setActiveTab] = useState<AnalyticsTab>("deals");
@@ -52,7 +96,52 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ deals, leads, o
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  // Filtered Data (Deals)
+  const handleOwnerFilterChange = (value: string) => {
+    setOwnerFilter(value);
+    if (onFiltersChange) {
+      onFiltersChange({
+        ownerId: value === "all" ? undefined : value,
+        projectId: projectFilter === "all" ? undefined : projectFilter,
+        startDate: dateFrom || undefined,
+        endDate: dateTo || undefined
+      });
+    }
+  };
+  const handleProjectFilterChange = (value: string) => {
+    setProjectFilter(value);
+    if (onFiltersChange) {
+      onFiltersChange({
+        ownerId: ownerFilter === "all" ? undefined : ownerFilter,
+        projectId: value === "all" ? undefined : value,
+        startDate: dateFrom || undefined,
+        endDate: dateTo || undefined
+      });
+    }
+  };
+  const handleDateFromChange = (value: string) => {
+    setDateFrom(value);
+    if (onFiltersChange) {
+      onFiltersChange({
+        ownerId: ownerFilter === "all" ? undefined : ownerFilter,
+        projectId: projectFilter === "all" ? undefined : projectFilter,
+        startDate: value || undefined,
+        endDate: dateTo || undefined
+      });
+    }
+  };
+  const handleDateToChange = (value: string) => {
+    setDateTo(value);
+    if (onFiltersChange) {
+      onFiltersChange({
+        ownerId: ownerFilter === "all" ? undefined : ownerFilter,
+        projectId: projectFilter === "all" ? undefined : projectFilter,
+        startDate: dateFrom || undefined,
+        endDate: value || undefined
+      });
+    }
+  };
+
+  // Filtered Data (Deals) - only used when not in API mode
   const filteredDeals = useMemo(() => {
     return deals.filter((deal) => {
       const lead = leads.find((l) => l.id === deal.leadId);
@@ -69,7 +158,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ deals, leads, o
     });
   }, [deals, leads, owners, ownerFilter, leadFilter, projectFilter, typeFilter, dateFrom, dateTo]);
 
-  // Filtered Data (Leads - for Pipeline View)
+  // Filtered Data (Leads - for Pipeline View) - only used when not in API mode
   const filteredLeads = useMemo(() => {
     return leads.filter((l) => {
       if (l.pipelineStage === PipelineStage.TRASH) return false;
@@ -82,56 +171,121 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ deals, leads, o
     });
   }, [leads, owners, ownerFilter, projectFilter, dateFrom, dateTo]);
 
-  // --- Deal KPIs & Charts ---
-  const totalVolume = filteredDeals.reduce((sum, d) => sum + d.totalAmount, 0);
-  const volumeByType = {
-    [DealType.CONSULTING]: filteredDeals
-      .filter((d) => d.type === DealType.CONSULTING)
-      .reduce((sum, d) => sum + d.totalAmount, 0),
-    [DealType.ONLINE_TRAINING]: filteredDeals
-      .filter((d) => d.type === DealType.ONLINE_TRAINING)
-      .reduce((sum, d) => sum + d.totalAmount, 0),
-    [DealType.OFFSITE]: filteredDeals
-      .filter((d) => d.type === DealType.OFFSITE)
-      .reduce((sum, d) => sum + d.totalAmount, 0)
-  };
-
-  const leadDistribution = useMemo(() => {
-    const counts: Record<string, { count: number; name: string }> = {};
-    filteredDeals.forEach((deal) => {
-      const lead = leads.find((l) => l.id === deal.leadId);
-      const leadName = lead ? `${lead.firstName} ${lead.lastName}` : "Unbekannt";
-      if (!counts[deal.leadId]) counts[deal.leadId] = { count: 0, name: leadName };
-      counts[deal.leadId].count += 1;
+  // --- From API (Deals) ---
+  const apiTotalVolume = useMemo(() => apiDealsData?.totalValueOfDeals ?? 0, [apiDealsData]);
+  const apiVolumeByType = useMemo(() => {
+    const out = {
+      [DealType.CONSULTING]: 0,
+      [DealType.ONLINE_TRAINING]: 0,
+      [DealType.OFFSITE]: 0
+    };
+    (apiDealsData?.dealsValueByType ?? []).forEach((row) => {
+      const key = API_DEAL_TYPE_TO_ENUM[row.dealType];
+      if (key != null) out[key] = row.totalValue ?? 0;
     });
-    return Object.values(counts).sort((a, b) => b.count - a.count);
-  }, [filteredDeals, leads]);
+    return out;
+  }, [apiDealsData]);
+  const apiLeadDistribution = useMemo(
+    () =>
+      (apiDealsData?.countDealsPerLead ?? []).map((row) => ({
+        name: row.leadName,
+        count: row.count ?? 0
+      })),
+    [apiDealsData]
+  );
+  const apiOwnerPerformance = useMemo(
+    () =>
+      (apiDealsData?.dealValueByOwner ?? []).map((row) => ({
+        name: row.ownerName,
+        volume: row.totalValue ?? 0,
+        avatar: initials(row.ownerName)
+      })),
+    [apiDealsData]
+  );
 
-  const ownerPerformance = useMemo(() => {
-    const performance: Record<string, { volume: number; name: string; avatar: string }> = {};
-    filteredDeals.forEach((deal) => {
-      const lead = leads.find((l) => l.id === deal.leadId);
-      if (lead) {
-        const owner = owners.find((o) => o.name === lead.ownerName);
-        const ownerId = owner?.id || "unknown";
-        if (!performance[ownerId]) {
-          performance[ownerId] = { volume: 0, name: lead.ownerName, avatar: owner?.avatar || "?" };
-        }
-        performance[ownerId].volume += deal.totalAmount;
-      }
+  // --- From API (Pipeline) ---
+  const apiActiveLeads = apiPipelineData?.activeLeads ?? 0;
+  const apiConversionRate = apiPipelineData?.conversionRate ?? 0;
+  const apiPipelineFunnel = useMemo(() => {
+    const rows = apiPipelineData?.leadsGroupByStatus ?? [];
+    const byStatus = new Map(rows.map((r) => [r.status, r.count ?? 0]));
+    return STAGES.map((stage) => {
+      const apiKey = Object.entries(API_STATUS_TO_STAGE).find(([, v]) => v === stage)?.[0] ?? "";
+      const count = byStatus.get(apiKey) ?? 0;
+      const title = t.pipeline.stages[apiKey as keyof typeof t.pipeline.stages] || stage;
+      return { stage, count, title };
     });
-    return Object.values(performance).sort((a, b) => b.volume - a.volume);
-  }, [filteredDeals, leads, owners]);
+  }, [apiPipelineData, t]);
+  const apiLeadsByOwnerCount = useMemo(
+    () =>
+      (apiPipelineData?.countLeadsPerOwner ?? []).map((row) => ({
+        name: row.ownerName,
+        count: row.count ?? 0,
+        avatar: initials(row.ownerName)
+      })),
+    [apiPipelineData]
+  );
 
-  // --- Pipeline Metrics ---
-  const pipelineFunnel = useMemo(() => {
-    return STAGES.map((stage) => ({
-      stage,
-      count: filteredLeads.filter((l) => l.pipelineStage === stage).length,
-      title: t.pipeline.stages[stage.toUpperCase().replace(/\s/g, "_") as keyof typeof t.pipeline.stages] || stage
-    }));
-  }, [filteredLeads, t]);
+  // --- Deal KPIs & Charts (pick API vs local) ---
+  const totalVolume =
+    isApiMode && apiDealsData != null
+      ? apiTotalVolume
+      : filteredDeals.reduce((sum, d) => sum + d.totalAmount, 0);
+  const volumeByType =
+    isApiMode && apiDealsData != null
+      ? apiVolumeByType
+      : {
+          [DealType.CONSULTING]: filteredDeals
+            .filter((d) => d.type === DealType.CONSULTING)
+            .reduce((sum, d) => sum + d.totalAmount, 0),
+          [DealType.ONLINE_TRAINING]: filteredDeals
+            .filter((d) => d.type === DealType.ONLINE_TRAINING)
+            .reduce((sum, d) => sum + d.totalAmount, 0),
+          [DealType.OFFSITE]: filteredDeals
+            .filter((d) => d.type === DealType.OFFSITE)
+            .reduce((sum, d) => sum + d.totalAmount, 0)
+        };
+  const leadDistribution =
+    isApiMode && apiDealsData != null
+      ? apiLeadDistribution
+      : (() => {
+          const counts: Record<string, { count: number; name: string }> = {};
+          filteredDeals.forEach((deal) => {
+            const lead = leads.find((l) => l.id === deal.leadId);
+            const leadName = lead ? `${lead.firstName} ${lead.lastName}` : "Unbekannt";
+            if (!counts[deal.leadId]) counts[deal.leadId] = { count: 0, name: leadName };
+            counts[deal.leadId].count += 1;
+          });
+          return Object.values(counts).sort((a, b) => b.count - a.count);
+        })();
+  const ownerPerformance =
+    isApiMode && apiDealsData != null
+      ? apiOwnerPerformance
+      : (() => {
+          const performance: Record<string, { volume: number; name: string; avatar: string }> = {};
+          filteredDeals.forEach((deal) => {
+            const lead = leads.find((l) => l.id === deal.leadId);
+            if (lead) {
+              const owner = owners.find((o) => o.name === lead.ownerName);
+              const ownerId = owner?.id || "unknown";
+              if (!performance[ownerId]) {
+                performance[ownerId] = { volume: 0, name: lead.ownerName, avatar: owner?.avatar || "?" };
+              }
+              performance[ownerId].volume += deal.totalAmount;
+            }
+          });
+          return Object.values(performance).sort((a, b) => b.volume - a.volume);
+        })();
 
+  // --- Pipeline Metrics (pick API vs local) ---
+  const pipelineFunnel =
+    isApiMode && apiPipelineData != null
+      ? apiPipelineFunnel
+      : STAGES.map((stage) => ({
+          stage,
+          count: filteredLeads.filter((l) => l.pipelineStage === stage).length,
+          title: t.pipeline.stages[stage.toUpperCase().replace(/\s/g, "_") as keyof typeof t.pipeline.stages] || stage
+        }));
   const avgLeadAge = useMemo(() => {
     if (filteredLeads.length === 0) return 0;
     const now = new Date();
@@ -141,22 +295,30 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ deals, leads, o
     }, 0);
     return Math.round(totalDays / filteredLeads.length);
   }, [filteredLeads]);
-
-  const conversionRate = useMemo(() => {
-    if (filteredLeads.length === 0) return 0;
-    const closedCount = filteredLeads.filter((l) => l.pipelineStage === PipelineStage.CLOSED).length;
-    return Math.round((closedCount / filteredLeads.length) * 100);
-  }, [filteredLeads]);
-
-  const leadsByOwnerCount = useMemo(() => {
-    const counts: Record<string, { count: number; name: string; avatar: string }> = {};
-    filteredLeads.forEach((l) => {
-      const owner = owners.find((o) => o.name === l.ownerName);
-      if (!counts[l.ownerName]) counts[l.ownerName] = { count: 0, name: l.ownerName, avatar: owner?.avatar || "?" };
-      counts[l.ownerName].count += 1;
-    });
-    return Object.values(counts).sort((a, b) => b.count - a.count);
-  }, [filteredLeads, owners]);
+  const conversionRate =
+    isApiMode && apiPipelineData != null
+      ? apiConversionRate
+      : filteredLeads.length === 0
+        ? 0
+        : Math.round(
+            (filteredLeads.filter((l) => l.pipelineStage === PipelineStage.CLOSED).length / filteredLeads.length) *
+              100
+          );
+  const activeLeadsCount =
+    isApiMode && apiPipelineData != null ? apiActiveLeads : filteredLeads.length;
+  const leadsByOwnerCount =
+    isApiMode && apiPipelineData != null
+      ? apiLeadsByOwnerCount
+      : (() => {
+          const counts: Record<string, { count: number; name: string; avatar: string }> = {};
+          filteredLeads.forEach((l) => {
+            const owner = owners.find((o) => o.name === l.ownerName);
+            if (!counts[l.ownerName]) counts[l.ownerName] = { count: 0, name: l.ownerName, avatar: owner?.avatar || "?" };
+            counts[l.ownerName].count += 1;
+          });
+          return Object.values(counts).sort((a, b) => b.count - a.count);
+        })();
+  const avgLeadAgeDisplay = isApiMode && apiPipelineData != null ? null : avgLeadAge;
 
   // --- Handlers ---
   const handleExportDeals = (start: string, end: string) => {
@@ -199,7 +361,17 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ deals, leads, o
   const locale = lang === "de" ? "de-DE" : "en-US";
 
   return (
-    <div className="flex-1 flex flex-col p-8 bg-white/50 backdrop-blur-sm rounded-3xl m-4 shadow-inner overflow-hidden">
+    <div className="flex-1 flex flex-col p-8 bg-white/50 backdrop-blur-sm rounded-3xl m-4 shadow-inner overflow-hidden relative">
+      {apiLoading && (
+        <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-3xl">
+          <Loader2 className="animate-spin text-blue-600" size={48} />
+        </div>
+      )}
+      {apiError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 text-sm font-medium">
+          {apiError}
+        </div>
+      )}
       {/* Header with Switcher and Filters */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div className="flex flex-col">
@@ -223,7 +395,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ deals, leads, o
         <div className="flex flex-wrap items-center gap-3">
           {activeTab === "deals" && (
             <button
-              onClick={() => setIsExportModalOpen(true)}
+              onClick={() => (isApiMode ? alert(t.analytics.noData) : setIsExportModalOpen(true))}
               className="flex items-center gap-2 px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-2xl font-bold text-sm hover:bg-gray-50 shadow-sm transition-all group"
             >
               <Download size={18} className="text-blue-600 group-hover:scale-110 transition-transform" />
@@ -236,7 +408,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ deals, leads, o
               <Users size={14} className="text-gray-400" />
               <select
                 value={ownerFilter}
-                onChange={(e) => setOwnerFilter(e.target.value)}
+                onChange={(e) => handleOwnerFilterChange(e.target.value)}
                 className="bg-transparent text-xs font-bold text-gray-700 border-none focus:ring-0 p-0"
               >
                 <option value="all">{t.analytics.filters.allOwners}</option>
@@ -251,7 +423,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ deals, leads, o
               <FolderKanban size={14} className="text-gray-400" />
               <select
                 value={projectFilter}
-                onChange={(e) => setProjectFilter(e.target.value)}
+                onChange={(e) => handleProjectFilterChange(e.target.value)}
                 className="bg-transparent text-xs font-bold text-gray-700 border-none focus:ring-0 p-0 max-w-[120px]"
               >
                 <option value="all">{t.header.allProjects}</option>
@@ -267,14 +439,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ deals, leads, o
               <input
                 type="date"
                 value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
+                onChange={(e) => handleDateFromChange(e.target.value)}
                 className="bg-transparent text-[10px] font-bold text-gray-600 border-none focus:ring-0 p-0 w-24"
               />
               <span className="text-gray-300">-</span>
               <input
                 type="date"
                 value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
+                onChange={(e) => handleDateToChange(e.target.value)}
                 className="bg-transparent text-[10px] font-bold text-gray-600 border-none focus:ring-0 p-0 w-24"
               />
             </div>
@@ -398,7 +570,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ deals, leads, o
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
                 {t.analytics.metrics.activeLeads}
               </p>
-              <h4 className="text-2xl font-black text-blue-600">{filteredLeads.length}</h4>
+              <h4 className="text-2xl font-black text-blue-600">{activeLeadsCount}</h4>
             </div>
             <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
@@ -414,8 +586,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ deals, leads, o
                 {t.analytics.metrics.avgLeadAge}
               </p>
               <h4 className="text-2xl font-black text-gray-800">
-                {avgLeadAge}{" "}
-                <span className="text-sm font-bold text-gray-400 uppercase">{t.analytics.metrics.days}</span>
+                {avgLeadAgeDisplay != null ? (
+                  <>
+                    {avgLeadAge}{" "}
+                    <span className="text-sm font-bold text-gray-400 uppercase">{t.analytics.metrics.days}</span>
+                  </>
+                ) : (
+                  "—"
+                )}
               </h4>
             </div>
             <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-center">

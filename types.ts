@@ -160,3 +160,50 @@ export interface EnrichmentData {
 
 export type SortField = "lastName" | "createdAt";
 export type SortOrder = "asc" | "desc";
+
+// Dashboard analytics API response types
+export interface AnalyticsDealsDealTypeRow {
+  dealType: string;
+  totalValue: number;
+}
+
+export interface AnalyticsDealsLeadRow {
+  leadName: string;
+  count: number;
+}
+
+export interface AnalyticsDealsOwnerRow {
+  ownerName: string;
+  totalValue: number;
+}
+
+export interface AnalyticsDealsData {
+  totalValueOfDeals: number;
+  dealsValueByType?: AnalyticsDealsDealTypeRow[];
+  countDealsPerLead?: AnalyticsDealsLeadRow[];
+  dealValueByOwner?: AnalyticsDealsOwnerRow[];
+}
+
+export interface AnalyticsPipelineOwnerRow {
+  ownerName: string;
+  count: number;
+}
+
+export interface AnalyticsPipelineStatusRow {
+  status: string;
+  count: number;
+}
+
+export interface AnalyticsPipelineData {
+  activeLeads: number;
+  conversionRate: number;
+  countLeadsPerOwner?: AnalyticsPipelineOwnerRow[];
+  leadsGroupByStatus?: AnalyticsPipelineStatusRow[];
+}
+
+export interface DashboardAnalyticsParams {
+  ownerId?: string;
+  projectId?: string;
+  startDate?: string;
+  endDate?: string;
+}

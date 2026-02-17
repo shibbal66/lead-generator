@@ -18,7 +18,7 @@ import MyProjectsDashboard from "./components/MyProjectsDashboard";
 import SettingsDashboard from "./components/SettingsDashboard";
 import EmailSettingsDashboard from "./components/EmailSettingsDashboard";
 import UserManagementDashboard from "./components/UserManagementDashboard";
-import AnalyticsDashboard from "./components/AnalyticsDashboard";
+import AnalyticsPage from "./pages/AnalyticsPage";
 import TrashModal from "./components/TrashModal";
 import Toast from "./components/Toast";
 import NotificationToast from "./components/NotificationToast";
@@ -1086,7 +1086,7 @@ const App: React.FC = () => {
 
   const renderMainView = () => {
     if (activeView === "analytics")
-      return <AnalyticsDashboard deals={deals} leads={leads} owners={owners} projects={projects} lang={currentLang} />;
+      return <AnalyticsPage owners={owners} projects={projects} lang={currentLang} />;
     if (activeView === "todos") return <TodoDashboard lang={currentLang} />;
     if (activeView === "sent_tasks") return <SentTasksDashboard lang={currentLang} />;
     if (activeView === "my_projects") return <MyProjectsDashboard lang={currentLang} />;
