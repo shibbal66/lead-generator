@@ -5,20 +5,30 @@ import { translations, Language } from "../translations";
 interface ExportDealsModalProps {
   lang: Language;
   onClose: () => void;
-  onExport: (startDate: string, endDate: string) => void;
+  onExport: (startDate?: string, endDate?: string) => Promise<void> | void;
+  initialStartDate?: string;
+  initialEndDate?: string;
 }
 
-const ExportDealsModal: React.FC<ExportDealsModalProps> = ({ lang, onClose, onExport }) => {
+const ExportDealsModal: React.FC<ExportDealsModalProps> = ({
+  lang,
+  onClose,
+  onExport,
+  initialStartDate = "",
+  initialEndDate = ""
+}) => {
   const t = useMemo(() => translations[lang], [lang]);
 
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [dateFrom, setDateFrom] = useState(initialStartDate);
+  const [dateTo, setDateTo] = useState(initialEndDate);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!dateFrom || !dateTo) return;
-    onExport(dateFrom, dateTo);
-    onClose();
+    Promise.resolve(onExport(dateFrom || undefined, dateTo || undefined))
+      .then(() => onClose())
+      .catch(() => {
+        // Error state is shown in dashboard container via API error surface.
+      });
   };
 
   return (
@@ -47,7 +57,6 @@ const ExportDealsModal: React.FC<ExportDealsModalProps> = ({ lang, onClose, onEx
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
                 <input
-                  required
                   type="date"
                   className="w-full pl-9 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 text-[10px] font-bold text-gray-600"
                   value={dateFrom}
@@ -62,7 +71,6 @@ const ExportDealsModal: React.FC<ExportDealsModalProps> = ({ lang, onClose, onEx
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
                 <input
-                  required
                   type="date"
                   className="w-full pl-9 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 text-[10px] font-bold text-gray-600"
                   value={dateTo}

@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 
 import authReducer from "./slices/authSlice";
 import commentsReducer from "./slices/commentSlice";
+import dashboardReducer from "./slices/dashboardSlice";
 import dealsReducer from "./slices/dealSlice";
 import leadsReducer from "./slices/leadSlice";
 import notificationsReducer from "./slices/notificationSlice";
@@ -14,6 +15,7 @@ export const store = configureStore({
   reducer: {
     auth: authReducer,
     comments: commentsReducer,
+    dashboard: dashboardReducer,
     deals: dealsReducer,
     leads: leadsReducer,
     notifications: notificationsReducer,

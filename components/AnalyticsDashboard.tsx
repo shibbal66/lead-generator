@@ -39,6 +39,7 @@ interface AnalyticsDashboardProps {
   apiLoading?: boolean;
   apiError?: string | null;
   onFiltersChange?: (params: DashboardFilterParams) => void;
+  onApiExportDeals?: (startDate?: string, endDate?: string) => Promise<void>;
 }
 
 type AnalyticsTab = "deals" | "pipeline";
@@ -54,6 +55,8 @@ const API_STATUS_TO_STAGE: Record<string, PipelineStage> = {
 
 const API_DEAL_TYPE_TO_ENUM: Record<string, DealType> = {
   CONSULTING: DealType.CONSULTING,
+  ONLINE_TRADING: DealType.ONLINE_TRAINING,
+  OFF_SITE: DealType.OFFSITE,
   ONLINE_TRAINING: DealType.ONLINE_TRAINING,
   OFFSITE: DealType.OFFSITE
 };
@@ -78,7 +81,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   apiPipelineData,
   apiLoading = false,
   apiError = null,
-  onFiltersChange
+  onFiltersChange,
+  onApiExportDeals
 }) => {
   const t = useMemo(() => translations[lang], [lang]);
   const isApiMode = onFiltersChange != null;
@@ -321,13 +325,20 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   const avgLeadAgeDisplay = isApiMode && apiPipelineData != null ? null : avgLeadAge;
 
   // --- Handlers ---
-  const handleExportDeals = (start: string, end: string) => {
-    const sDate = new Date(start);
-    const eDate = new Date(end);
+  const handleExportDeals = async (start?: string, end?: string) => {
+    if (isApiMode && onApiExportDeals) {
+      await onApiExportDeals(start, end);
+      return;
+    }
+
+    const sDate = start ? new Date(start) : null;
+    const eDate = end ? new Date(end) : null;
     const exportData = deals
       .filter((d) => {
         const dDate = new Date(d.createdAt);
-        return dDate >= sDate && dDate <= eDate;
+        const afterStart = !sDate || dDate >= sDate;
+        const beforeEnd = !eDate || dDate <= eDate;
+        return afterStart && beforeEnd;
       })
       .map((d) => {
         const lead = leads.find((l) => l.id === d.leadId);
@@ -355,7 +366,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Abschlüsse");
-    XLSX.writeFile(workbook, `Abschluesse_${start}_${end}.xlsx`);
+    XLSX.writeFile(
+      workbook,
+      `Abschluesse_${start || "all"}_${end || "all"}.xlsx`
+    );
   };
 
   const locale = lang === "de" ? "de-DE" : "en-US";
@@ -395,7 +409,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         <div className="flex flex-wrap items-center gap-3">
           {activeTab === "deals" && (
             <button
-              onClick={() => (isApiMode ? alert(t.analytics.noData) : setIsExportModalOpen(true))}
+              onClick={() => setIsExportModalOpen(true)}
               className="flex items-center gap-2 px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-2xl font-bold text-sm hover:bg-gray-50 shadow-sm transition-all group"
             >
               <Download size={18} className="text-blue-600 group-hover:scale-110 transition-transform" />
@@ -517,7 +531,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               <h3 className="text-xl font-black text-gray-900 tracking-tight mb-8 flex items-center gap-3">
                 <PieChart size={20} className="text-emerald-500" /> {t.analytics.chartLeadDistribution}
               </h3>
-              <div className="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="max-h-[220px] space-y-4 overflow-y-auto pr-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {leadDistribution.slice(0, 10).map((item, i) => (
                   <div
                     key={i}
@@ -535,7 +549,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               <h3 className="text-xl font-black text-gray-900 tracking-tight mb-8 flex items-center gap-3">
                 <BarChart3 size={20} className="text-blue-500" /> {t.analytics.chartOwnerPerformance}
               </h3>
-              <div className="flex-1 space-y-6 overflow-y-auto pr-4 custom-scrollbar">
+              <div className="max-h-[240px] space-y-6 overflow-y-auto pr-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {ownerPerformance.map((op, i) => (
                   <div key={i} className="space-y-2">
                     <div className="flex justify-between items-center px-1">
@@ -606,7 +620,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               <h3 className="text-xl font-black text-gray-900 tracking-tight mb-8 flex items-center gap-3">
                 <Layers size={20} className="text-indigo-500" /> {t.analytics.chartPipelineFunnel}
               </h3>
-              <div className="flex-1 flex flex-col justify-between py-4">
+              <div className="max-h-[200px] space-y-3 overflow-y-auto py-1 pr-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {pipelineFunnel.map((item, i) => {
                   const maxCount = Math.max(...pipelineFunnel.map((f) => f.count));
                   const width = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
@@ -628,7 +642,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               <h3 className="text-xl font-black text-gray-900 tracking-tight mb-8 flex items-center gap-3">
                 <Users size={20} className="text-blue-500" /> {t.analytics.chartLeadsByOwner}
               </h3>
-              <div className="flex-1 space-y-6 overflow-y-auto pr-4 custom-scrollbar">
+              <div className="max-h-[240px] space-y-6 overflow-y-auto pr-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {leadsByOwnerCount.map((oc, i) => (
                   <div key={i} className="space-y-2">
                     <div className="flex justify-between items-center px-1">
@@ -655,7 +669,13 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       )}
 
       {isExportModalOpen && (
-        <ExportDealsModal lang={lang} onClose={() => setIsExportModalOpen(false)} onExport={handleExportDeals} />
+        <ExportDealsModal
+          lang={lang}
+          initialStartDate={dateFrom}
+          initialEndDate={dateTo}
+          onClose={() => setIsExportModalOpen(false)}
+          onExport={handleExportDeals}
+        />
       )}
     </div>
   );

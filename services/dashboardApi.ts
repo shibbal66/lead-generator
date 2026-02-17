@@ -72,5 +72,37 @@ export const dashboardApi = {
   getAnalyticsPipeline: async (params?: DashboardAnalyticsParams): Promise<AnalyticsPipelineData> => {
     const query = buildQuery(params);
     return requestPipeline(`/dashboard/analytics-pipeline${query}`);
+  },
+
+  exportLeadsCsv: async (params?: DashboardAnalyticsParams): Promise<string> => {
+    const query = buildQuery(params);
+    let response: Response;
+    try {
+      response = await fetch(`${BACKEND_URL}/dashboard/export/leads${query}`, { credentials: "include" });
+    } catch {
+      throw new Error("Network/CORS error: unable to reach dashboard service.");
+    }
+
+    if (!response.ok) {
+      throw new Error("Failed to export leads CSV.");
+    }
+
+    return response.text();
+  },
+
+  exportDealsCsv: async (params?: DashboardAnalyticsParams): Promise<string> => {
+    const query = buildQuery(params);
+    let response: Response;
+    try {
+      response = await fetch(`${BACKEND_URL}/dashboard/export/deals${query}`, { credentials: "include" });
+    } catch {
+      throw new Error("Network/CORS error: unable to reach dashboard service.");
+    }
+
+    if (!response.ok) {
+      throw new Error("Failed to export deals CSV.");
+    }
+
+    return response.text();
   }
 };

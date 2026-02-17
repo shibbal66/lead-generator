@@ -47,7 +47,6 @@ import {
   LogOut
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import * as XLSX from "xlsx";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { signOutLocal } from "./store/slices/authSlice";
 import {
@@ -69,6 +68,7 @@ import {
 } from "./store/actions/commentActions";
 import { startNotificationStream, stopNotificationStream } from "./store/actions/notificationActions";
 import { pushLocalNotification } from "./store/slices/notificationSlice";
+import { exportLeadsCsv } from "./store/actions/dashboardActions";
 
 
 type ViewType =
@@ -421,31 +421,42 @@ const App: React.FC = () => {
 
   const trashedLeadsCount = useMemo(() => deletedLeads.length, [deletedLeads]);
 
-  const handleExport = () => {
-    if (leads.length === 0) return;
-    const notFoundText = currentLang === "de" ? "Nicht gefunden" : "Not found";
-    const safeDate = (value?: string) => {
-      if (!value) return notFoundText;
-      const parsed = new Date(value);
-      return Number.isNaN(parsed.getTime()) ? notFoundText : parsed.toLocaleDateString();
+  const handleExport = useCallback(async () => {
+    const params = {
+      ownerId: ownerFilter === "All" ? undefined : users.find((user) => user.name === ownerFilter)?.id,
+      projectId: projectFilter === "All" ? undefined : projectFilter
     };
-    const exportData = leads.map((l) => ({
-      ID: l.id,
-      Vorname: l.firstName,
-      Nachname: l.lastName,
-      Position: l.currentPosition,
-      Firma: l.company || "",
-      Betreuer: l.ownerName,
-      Status: l.pipelineStage,
-      Projekt:
-        projectOptions.find((p) => p.id === l.projectId)?.title || (currentLang === "de" ? "Kein Projekt" : "No Project"),
-      Datum: safeDate(l.createdAt)
-    }));
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
-    XLSX.writeFile(workbook, `LeadGenerator_Leads_${new Date().toISOString().split("T")[0]}.xlsx`);
-  };
+    console.log("[Dashboard] export leads params", params);
+    const result = await dispatch(exportLeadsCsv(params));
+    if (!exportLeadsCsv.fulfilled.match(result)) {
+      console.error("[Dashboard] export leads rejected", result);
+      setToastState({
+        open: true,
+        type: "error",
+        message:
+          (result.payload as string) ||
+          (currentLang === "de" ? "Leads-Export fehlgeschlagen." : "Failed to export leads.")
+      });
+      return;
+    }
+
+    const csv = result.payload;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `leads_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+
+    setToastState({
+      open: true,
+      type: "success",
+      message: currentLang === "de" ? "Leads erfolgreich exportiert." : "Leads exported successfully."
+    });
+  }, [currentLang, dispatch, ownerFilter, projectFilter, users]);
 
   const sendPushNotification = useCallback(async (title: string, body: string) => {
     const settings = await api.getSettings();
@@ -1086,7 +1097,13 @@ const App: React.FC = () => {
 
   const renderMainView = () => {
     if (activeView === "analytics")
-      return <AnalyticsPage owners={owners} projects={projects} lang={currentLang} />;
+      return (
+        <AnalyticsPage
+          owners={users.map((u) => ({ id: u.id, name: u.name }))}
+          projects={projectOptions}
+          lang={currentLang}
+        />
+      );
     if (activeView === "todos") return <TodoDashboard lang={currentLang} />;
     if (activeView === "sent_tasks") return <SentTasksDashboard lang={currentLang} />;
     if (activeView === "my_projects") return <MyProjectsDashboard lang={currentLang} />;
