@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
 
 import App from "./App";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -34,11 +34,6 @@ const CatchAllRedirect: React.FC = () => {
   }
 
   return <Navigate to={isAuthenticated ? "/" : "/login"} replace />;
-};
-
-const LegacyLoginRedirect: React.FC = () => {
-  const location = useLocation();
-  return <Navigate to={{ pathname: "/login", search: location.search }} replace />;
 };
 
 const SignInRoute: React.FC = () => {
@@ -251,11 +246,6 @@ const AppRoutes: React.FC = () => {
       <Routes>
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<SignInRoute />} />
-          <Route path="/sign-in" element={<LegacyLoginRedirect />} />
-          <Route path="/signin" element={<LegacyLoginRedirect />} />
-          <Route path="/auth/login" element={<LegacyLoginRedirect />} />
-          <Route path="/auth/sign-in" element={<LegacyLoginRedirect />} />
-          <Route path="/auth/signin" element={<LegacyLoginRedirect />} />
           <Route path="/sign-up" element={<SignUpRoute />} />
           <Route path="/signup" element={<SignUpRoute />} />
           <Route path="/auth/sign-up" element={<SignUpRoute />} />
