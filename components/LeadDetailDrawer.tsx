@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Lead, Comment, PipelineStage, LeadFile, Deal, Project, Todo } from "../types";
+import { Lead, Comment, PipelineStage, LeadFile, Deal, DealType, Project, Todo } from "../types";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import {
@@ -34,7 +34,7 @@ import {
   Circle,
   Clock
 } from "lucide-react";
-import { STAGE_COLORS, STAGES } from "../constants";
+import { STAGE_COLORS, STAGES, PIPELINE_STAGE_KEYS } from "../constants";
 import { api } from "../services/api";
 import { translations, Language } from "../translations";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
@@ -396,7 +396,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                       className="flex items-center bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold"
                     >
                       <DollarSign size={10} className="mr-1" />
-                      {t.deal.totalSum}: {sum.toLocaleString(locale)} {curr === "USD" ? "$" : "€"}
+                      {t.deal.totalSum}: {Number(sum).toLocaleString(locale)} {curr === "USD" ? "$" : "€"}
                     </div>
                   ))}
                 </div>
@@ -424,7 +424,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
           <div className="flex-1 overflow-y-auto p-6">
             <div className="mb-8">
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">
-                Aktueller Status
+                {t.leadDetail.currentStatus}
               </label>
               <div className="flex items-center space-x-3">
                 <select
@@ -433,14 +433,14 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   disabled={!isEditing}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold border-none cursor-pointer focus:ring-2 focus:ring-blue-500 disabled:cursor-default ${STAGE_COLORS[formik.values.pipelineStage]}`}
                 >
-                  {STAGES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
+                  {PIPELINE_STAGE_KEYS.map((key) => (
+                    <option key={key} value={PipelineStage[key as keyof typeof PipelineStage]}>
+                      {t.pipeline.stages[key]}
                     </option>
                   ))}
                 </select>
                 <span className="text-xs text-gray-400 italic">
-                  Zuletzt aktualisiert: {formatDateTimeOrFallback(lead.updatedAt)}
+                  {t.leadDetail.lastUpdated}: {formatDateTimeOrFallback(lead.updatedAt)}
                 </span>
               </div>
             </div>
@@ -449,7 +449,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
               <div className="space-y-4">
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
-                    Vorname
+                    {t.leadModal.firstName}
                   </label>
                   {isEditing ? (
                     <input
@@ -468,7 +468,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
-                    Position
+                    {t.leadModal.position}
                   </label>
                   {isEditing ? (
                     <input
@@ -487,7 +487,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
-                    Firma
+                    {t.leadModal.company}
                   </label>
                   {isEditing ? (
                     <input
@@ -500,7 +500,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   ) : (
                     <p className="text-gray-900 font-medium">
                       <Building size={14} className="inline mr-2" />
-                      {lead.company || "Keine Angabe"}
+                      {lead.company || t.leadDetail.notSpecified}
                     </p>
                   )}
                 </div>
@@ -508,7 +508,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
               <div className="space-y-4">
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
-                    Nachname
+                    {t.leadModal.lastName}
                   </label>
                   {isEditing ? (
                     <input
@@ -527,7 +527,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
-                    Betreuer
+                    {t.leadModal.owner}
                   </label>
                   {isEditing ? (
                     <select
@@ -570,7 +570,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                     ) : (
                       <span className="text-[13px] text-gray-500 flex items-center">
                         <FolderKanban size={13} className="mr-2 text-blue-500 shrink-0" />
-                        Kein Projekt zugeordnet
+                        {t.leadDetail.noProjectAssigned}
                       </span>
                     )}
                   </div>
@@ -614,7 +614,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-gray-400 italic text-center py-2">Keine verknüpften Aufgaben.</p>
+                  <p className="text-xs text-gray-400 italic text-center py-2">{t.leadDetail.noLinkedTasks}</p>
                 )}
               </div>
             </div>
@@ -634,7 +634,10 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <p className="text-xs font-bold text-gray-900 truncate">{deal.name}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                            {deal.type}
+                            {(() => {
+                              const key = Object.entries(DealType).find(([, v]) => v === deal.type)?.[0] as keyof typeof t.dealTypes | undefined;
+                              return key ? t.dealTypes[key] : deal.type;
+                            })()}
                           </span>
                           <span className="text-[10px] text-gray-400 flex items-center">
                             <Calendar size={10} className="mr-1" />
@@ -659,7 +662,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
             <div className="bg-gray-50 rounded-xl p-5 mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-sm font-bold text-gray-700 flex items-center">
-                  <Calendar size={16} className="mr-2" /> Weitere Informationen
+                  <Calendar size={16} className="mr-2" /> {t.leadDetail.moreInfo}
                 </h3>
                 <button
                   onClick={handleSocialSearch}
@@ -671,13 +674,13 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   ) : (
                     <Search size={12} className="mr-1" />
                   )}
-                  Social Media Suche
+                  {t.leadDetail.socialMediaSearch}
                 </button>
               </div>
               <div className="space-y-4">
                 <div className="flex items-center text-sm">
                   <Calendar size={16} className="text-gray-400 mr-3 w-5" />
-                  <span className="text-gray-400 w-24">Geburtstag:</span>
+                  <span className="text-gray-400 w-24">{t.leadModal.birthday}:</span>
                   {isEditing ? (
                     <input
                       type="date"
@@ -694,7 +697,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                 </div>
                 <div className="flex items-center text-sm">
                   <Mail size={16} className="text-gray-400 mr-3 w-5" />
-                  <span className="text-gray-400 w-24">E-Mail:</span>
+                  <span className="text-gray-400 w-24">{t.leadModal.email}:</span>
                   {isEditing ? (
                     <input
                       type="email"
@@ -705,7 +708,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                       onBlur={formik.handleBlur}
                     />
                   ) : (
-                    <span className="text-gray-900 font-medium">{lead.email || "Nicht angegeben"}</span>
+                    <span className="text-gray-900 font-medium">{lead.email || t.leadDetail.notGiven}</span>
                   )}
                   {isEditing && formik.touched.email && formik.errors.email && (
                     <p className="text-[10px] text-red-500 ml-2">{formik.errors.email}</p>
@@ -714,7 +717,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
 
                 <div className="pt-2 border-t border-gray-100 mt-2">
                   <label className="text-[10px] font-bold text-gray-400 uppercase mb-2 block">
-                    Social Media Profile
+                    {t.leadDetail.socialMediaProfiles}
                   </label>
                   {isEditing ? (
                     <div className="space-y-2">
@@ -805,7 +808,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <Linkedin size={18} className={lead.linkedinUrl ? "text-blue-700" : "text-gray-300"} />
                         {lead.linkedinUrl && (
                           <a href={lead.linkedinUrl} target="_blank" className="text-xs text-blue-600 hover:underline">
-                            Profil
+                            {t.leadDetail.profile}
                           </a>
                         )}
                       </div>
@@ -813,7 +816,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <Facebook size={18} className={lead.facebookUrl ? "text-blue-600" : "text-gray-300"} />
                         {lead.facebookUrl && (
                           <a href={lead.facebookUrl} target="_blank" className="text-xs text-blue-600 hover:underline">
-                            Profil
+                            {t.leadDetail.profile}
                           </a>
                         )}
                       </div>
@@ -821,7 +824,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <Instagram size={18} className={lead.instagramUrl ? "text-pink-600" : "text-gray-300"} />
                         {lead.instagramUrl && (
                           <a href={lead.instagramUrl} target="_blank" className="text-xs text-blue-600 hover:underline">
-                            Profil
+                            {t.leadDetail.profile}
                           </a>
                         )}
                       </div>
@@ -829,7 +832,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <Music size={18} className={lead.tiktokUrl ? "text-black" : "text-gray-300"} />
                         {lead.tiktokUrl && (
                           <a href={lead.tiktokUrl} target="_blank" className="text-xs text-blue-600 hover:underline">
-                            Profil
+                            {t.leadDetail.profile}
                           </a>
                         )}
                       </div>
@@ -837,7 +840,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <Twitter size={18} className={lead.twitterUrl ? "text-blue-400" : "text-gray-300"} />
                         {lead.twitterUrl && (
                           <a href={lead.twitterUrl} target="_blank" className="text-xs text-blue-600 hover:underline">
-                            Profil
+                            {t.leadDetail.profile}
                           </a>
                         )}
                       </div>
@@ -857,7 +860,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   <textarea
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="Neuen Kommentar hinzufügen..."
+                    placeholder={t.leadDetail.addCommentPlaceholder}
                     className="w-full border-gray-200 rounded-xl p-3 pr-12 text-sm focus:ring-2 focus:ring-blue-500 resize-none h-20 outline-none"
                   />
                   <button
@@ -953,7 +956,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   ) : (
                     <Upload size={14} className="mr-2" />
                   )}
-                  Datei hochladen
+                  {t.leadDetail.uploadFile}
                 </button>
               </div>
 
@@ -980,16 +983,16 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                       <button
                         onClick={() => downloadFile(file)}
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg transition-colors"
-                        title="Herunterladen"
+                        title={t.leadDetail.download}
                       >
                         <Download size={16} />
                       </button>
                       <button
                         onClick={() => {
-                          if (window.confirm("Datei löschen?")) onDeleteFile?.(file.id);
+                          if (window.confirm(t.leadDetail.deleteFileConfirm)) onDeleteFile?.(file.id);
                         }}
                         className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors"
-                        title="Löschen"
+                        title={t.common.delete}
                       >
                         <Trash size={16} />
                       </button>
@@ -998,7 +1001,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                 ))}
                 {(!lead.files || lead.files.length === 0) && !isUploading && (
                   <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-xl">
-                    <p className="text-gray-400 text-sm italic">Noch keine Dateien hochgeladen.</p>
+                    <p className="text-gray-400 text-sm italic">{t.leadDetail.noFilesUploaded}</p>
                   </div>
                 )}
               </div>

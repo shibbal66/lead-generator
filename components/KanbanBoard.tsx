@@ -18,7 +18,8 @@ const KanbanColumn: React.FC<{
   onLeadClick: (lead: Lead) => void;
   onAddDeal?: (lead: Lead) => void;
   displayTitle: string;
-}> = ({ stage, leads, onLeadClick, onAddDeal, displayTitle }) => {
+  lang: Language;
+}> = ({ stage, leads, onLeadClick, onAddDeal, displayTitle, lang }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: stage
   });
@@ -37,7 +38,7 @@ const KanbanColumn: React.FC<{
 
       <div className="flex-1 overflow-y-auto space-y-1">
         {leads.map((lead) => (
-          <LeadCard key={lead.id} lead={lead} onClick={onLeadClick} onAddDeal={onAddDeal} />
+          <LeadCard key={lead.id} lead={lead} onClick={onLeadClick} onAddDeal={onAddDeal} lang={lang} />
         ))}
       </div>
     </div>
@@ -74,6 +75,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onLeadClick, onAddDeal
           leads={leads.filter((l) => l.pipelineStage === stage)}
           onLeadClick={onLeadClick}
           onAddDeal={onAddDeal}
+          lang={lang}
         />
       ))}
     </div>
