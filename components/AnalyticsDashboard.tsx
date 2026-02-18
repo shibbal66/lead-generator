@@ -33,7 +33,6 @@ interface AnalyticsDashboardProps {
   owners: Owner[];
   projects: Project[];
   lang: Language;
-  /** When provided, dashboard uses API data instead of computing from deals/leads */
   apiDealsData?: AnalyticsDealsData | null;
   apiPipelineData?: AnalyticsPipelineData | null;
   apiLoading?: boolean;

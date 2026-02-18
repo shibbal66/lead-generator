@@ -23,8 +23,11 @@ import NotificationToast from "./components/NotificationToast";
 import { translations, Language } from "./translations";
 import {
   Plus,
+  Menu,
+  X,
   Search,
   Filter,
+  Trash2,
   BarChart3,
   Users,
   LayoutDashboard,
@@ -97,6 +100,7 @@ const App: React.FC = () => {
     type: "info",
     message: ""
   });
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [notificationToastState, setNotificationToastState] = useState<{
     open: boolean;
     type: "success" | "error" | "info";
@@ -319,7 +323,7 @@ const App: React.FC = () => {
   );
 
   const mapApiCommentToUi = useCallback(
-    (comment: { id: string; leadId: string; userId: string; text: string; createdAt?: string }) => {
+    (comment: { id: string; leadId: string; userId: string; text: string; createdAt?: string; date?: string }) => {
       const authorName = users.find((user) => user.id === comment.userId)?.name || authUser?.name || "Unknown";
       return {
         id: comment.id,
@@ -1012,6 +1016,55 @@ const App: React.FC = () => {
             {t.pipeline.total}: <span className="font-bold text-gray-900">{filteredLeads.length}</span> {t.header.leads}
           </div>
         </div>
+        <div className="lg:hidden mb-4 space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder={t.header.searchPlaceholder}
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <select
+              className="w-full bg-gray-50 text-sm font-semibold text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500"
+              value={ownerFilter}
+              onChange={(e) => setOwnerFilter(e.target.value)}
+            >
+              <option value="All">{t.header.allOwners}</option>
+              {uniqueOwners.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+            <select
+              className="w-full bg-gray-50 text-sm font-semibold text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500"
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+            >
+              <option value="All">{t.header.allProjects}</option>
+              {projectOptions.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2.5">
+            <span className="text-sm text-gray-500">{t.header.sortBy}</span>
+            <button
+              onClick={() => setSortField(sortField === "lastName" ? "createdAt" : "lastName")}
+              className="text-sm font-bold text-blue-600"
+            >
+              {sortField === "lastName" ? t.header.lastName : t.header.date}
+            </button>
+          </div>
+        </div>
         {loading || leadsListStatus === "loading" ? (
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="animate-spin text-blue-600" size={48} />
@@ -1028,94 +1081,202 @@ const App: React.FC = () => {
     );
   };
 
+  const handleViewChange = (view: ViewType) => {
+    setActiveView(view);
+    setIsMobileSidebarOpen(false);
+  };
+
+  const SidebarContent = () => (
+    <>
+      <div className="p-6">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <BarChart3 className="text-white" size={18} />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900 tracking-tight">LeadGen Pro</h1>
+        </div>
+      </div>
+
+      <nav className="flex-1 px-4 overflow-y-auto space-y-6">
+        <div className="space-y-1">
+          <button
+            onClick={() => handleViewChange("pipeline")}
+            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${activeView === "pipeline" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
+          >
+            <LayoutDashboard size={20} /> <span>{t.sidebar.dashboard}</span>
+          </button>
+          <button
+            onClick={() => handleViewChange("analytics")}
+            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${activeView === "analytics" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
+          >
+            <PieChart size={20} /> <span>{t.sidebar.analytics}</span>
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-3">
+            <div className="flex items-center space-x-2 text-gray-400">
+              <Users size={16} />
+              <span className="text-xs font-bold uppercase tracking-widest">{t.sidebar.administrator}</span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <button
+              onClick={() => handleViewChange("user_mgmt")}
+              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${activeView === "user_mgmt" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
+            >
+              <ShieldCheck size={18} /> <span className="text-xs font-bold">{t.userMgmt.title}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-3">
+            <div className="flex items-center space-x-2 text-gray-400">
+              <Briefcase size={16} />
+              <span className="text-xs font-bold uppercase tracking-widest">{t.sidebar.myArea}</span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <button
+              onClick={() => handleViewChange("todos")}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all ${activeView === "todos" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
+            >
+              <div className="flex items-center space-x-3">
+                <CheckSquare size={18} /> <span className="text-xs font-bold">{t.sidebar.myTodos}</span>
+              </div>
+            </button>
+            <button
+              onClick={() => handleViewChange("my_projects")}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all ${activeView === "my_projects" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
+            >
+              <div className="flex items-center space-x-3">
+                <FolderKanban size={18} /> <span className="text-xs font-bold">{t.sidebar.myProjects}</span>
+              </div>
+            </button>
+            <button
+              onClick={() => handleViewChange("settings")}
+              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${activeView === "settings" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
+            >
+              <Settings size={18} /> <span className="text-xs font-bold">{t.sidebar.settings}</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div className="lg:hidden border-t border-gray-100 p-4 space-y-2">
+        <button
+          type="button"
+          onClick={() => {
+            handleExport();
+            setIsMobileSidebarOpen(false);
+          }}
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm"
+        >
+          <Download size={16} className="text-emerald-600" />
+          {t.header.exportTitle}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            handleOpenTrashModal();
+            setIsMobileSidebarOpen(false);
+          }}
+          className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm"
+        >
+          <span className="flex items-center gap-2">
+            <Trash2 size={16} className="text-gray-500" />
+            {t.trash.title}
+          </span>
+          {trashedLeadsCount > 0 && (
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+              {trashedLeadsCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setIsProjectModalOpen(true);
+            setIsMobileSidebarOpen(false);
+          }}
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm"
+        >
+          <FolderPlus size={16} className="text-indigo-600" />
+          {t.header.createProject}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setIsModalOpen(true);
+            setIsMobileSidebarOpen(false);
+          }}
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-blue-600 text-white font-bold text-sm"
+        >
+          <Plus size={16} />
+          {t.header.captureLead}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            dispatch(signOutLocal());
+            setIsMobileSidebarOpen(false);
+            navigate("/login?signedOut=1", { replace: true });
+          }}
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm"
+        >
+          <LogOut size={16} className="text-gray-500" />
+          {t.header.signOut}
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="flex h-screen bg-gray-50 overflow-hidden">
         <aside className="w-64 bg-white border-r border-gray-200 hidden lg:flex flex-col">
-          <div className="p-6">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <BarChart3 className="text-white" size={18} />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900 tracking-tight">LeadGen Pro</h1>
-            </div>
-          </div>
-
-          <nav className="flex-1 px-4 overflow-y-auto space-y-6">
-            <div className="space-y-1">
-              <button
-                onClick={() => setActiveView("pipeline")}
-                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${activeView === "pipeline" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
-              >
-                <LayoutDashboard size={20} /> <span>{t.sidebar.dashboard}</span>
-              </button>
-              <button
-                onClick={() => setActiveView("analytics")}
-                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${activeView === "analytics" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
-              >
-                <PieChart size={20} /> <span>{t.sidebar.analytics}</span>
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between px-3">
-                <div className="flex items-center space-x-2 text-gray-400">
-                  <Users size={16} />
-                  <span className="text-xs font-bold uppercase tracking-widest">
-                    {t.sidebar.administrator}
-                  </span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setActiveView("user_mgmt")}
-                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${activeView === "user_mgmt" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
-                >
-                  <ShieldCheck size={18} /> <span className="text-xs font-bold">{t.userMgmt.title}</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between px-3">
-                <div className="flex items-center space-x-2 text-gray-400">
-                  <Briefcase size={16} />
-                  <span className="text-xs font-bold uppercase tracking-widest">{t.sidebar.myArea}</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setActiveView("todos")}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all ${activeView === "todos" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <CheckSquare size={18} /> <span className="text-xs font-bold">{t.sidebar.myTodos}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setActiveView("my_projects")}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all ${activeView === "my_projects" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <FolderKanban size={18} /> <span className="text-xs font-bold">{t.sidebar.myProjects}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setActiveView("settings")}
-                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${activeView === "settings" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
-                >
-                  <Settings size={18} /> <span className="text-xs font-bold">{t.sidebar.settings}</span>
-                </button>
-              </div>
-            </div>
-          </nav>
+          <SidebarContent />
         </aside>
 
+        {isMobileSidebarOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="absolute inset-0 bg-black/30" onClick={() => setIsMobileSidebarOpen(false)} />
+            <aside className="absolute left-0 top-0 h-full w-72 max-w-[85vw] bg-white border-r border-gray-200 shadow-2xl flex flex-col">
+              <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileSidebarOpen(false)}
+                  className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+                  aria-label="Close menu"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <SidebarContent />
+            </aside>
+          </div>
+        )}
+
         <main className="flex-1 flex flex-col min-w-0">
-          <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between sticky top-0 z-40">
-            {/* Search and Filters */}
-            <div className="flex items-center flex-1 max-w-3xl space-x-4">
-              <div className="relative flex-1">
+          <header className="bg-white border-b border-gray-200 px-4 lg:px-8 py-4 flex items-center justify-between sticky top-0 z-40">
+            <div className="flex items-center w-full">
+              <button
+                type="button"
+                onClick={() => setIsMobileSidebarOpen(true)}
+                className="lg:hidden p-2 rounded-lg border border-gray-200 text-gray-600 bg-white shrink-0"
+                aria-label="Open menu"
+              >
+                <Menu size={18} />
+              </button>
+
+              {/* Search and Filters (desktop only) */}
+              <div className="hidden lg:flex items-center flex-1 max-w-3xl space-x-4 ml-4">
+                <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="text"
@@ -1126,41 +1287,42 @@ const App: React.FC = () => {
                 />
               </div>
 
-              {/* Advanced Header Filters */}
-              <div className="flex items-center space-x-2 bg-gray-50 p-1 rounded-xl">
-                <div className="px-2 text-gray-400">
-                  <Filter size={14} />
+                {/* Advanced Header Filters */}
+                <div className="flex items-center space-x-2 bg-gray-50 p-1 rounded-xl">
+                  <div className="px-2 text-gray-400">
+                    <Filter size={14} />
+                  </div>
+                  <select
+                    className="bg-transparent text-xs font-semibold text-gray-600 border-none focus:ring-0 py-1"
+                    value={ownerFilter}
+                    onChange={(e) => setOwnerFilter(e.target.value)}
+                  >
+                    <option value="All">{t.header.allOwners}</option>
+                    {uniqueOwners.map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="w-[1px] h-4 bg-gray-200 mx-1" />
+                  <select
+                    className="bg-transparent text-xs font-semibold text-gray-600 border-none focus:ring-0 py-1 max-w-[120px]"
+                    value={projectFilter}
+                    onChange={(e) => setProjectFilter(e.target.value)}
+                  >
+                    <option value="All">{t.header.allProjects}</option>
+                    {projectOptions.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.title}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <select
-                  className="bg-transparent text-xs font-semibold text-gray-600 border-none focus:ring-0 py-1"
-                  value={ownerFilter}
-                  onChange={(e) => setOwnerFilter(e.target.value)}
-                >
-                  <option value="All">{t.header.allOwners}</option>
-                  {uniqueOwners.map((o) => (
-                    <option key={o} value={o}>
-                      {o}
-                    </option>
-                  ))}
-                </select>
-                <div className="w-[1px] h-4 bg-gray-200 mx-1" />
-                <select
-                  className="bg-transparent text-xs font-semibold text-gray-600 border-none focus:ring-0 py-1 max-w-[120px]"
-                  value={projectFilter}
-                  onChange={(e) => setProjectFilter(e.target.value)}
-                >
-                  <option value="All">{t.header.allProjects}</option>
-                  {projectOptions.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.title}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
 
-            {/* Actions: Download, Trash, Projects, Create Lead */}
-            <div className="flex items-center space-x-3 ml-6">
+            {/* Actions: desktop only */}
+            <div className="hidden lg:flex items-center space-x-3 ml-6">
               <div className="flex items-center space-x-2 mr-2">
                 <span className="text-xs text-gray-400 font-medium">{t.header.sortBy}</span>
                 <button
