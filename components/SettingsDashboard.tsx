@@ -68,7 +68,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({ lang, onSettingsU
   }
 
   return (
-    <div className="flex-1 flex flex-col p-8 bg-white/50 backdrop-blur-sm rounded-3xl m-4 shadow-inner overflow-hidden">
+    <div className="flex-1 flex flex-col p-4 lg:p-8 bg-white/50 backdrop-blur-sm rounded-3xl m-2 lg:m-4 shadow-inner overflow-hidden">
       <div className="mb-8">
         <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">{t.settings.title}</h2>
         <p className="text-gray-500 mt-1">{t.settings.subtitle}</p>
@@ -132,23 +132,23 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({ lang, onSettingsU
             <h3 className="text-xl font-bold text-gray-800 tracking-tight">{t.settings.languageRegion}</h3>
           </div>
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="max-w-md">
                 <h4 className="text-sm font-bold text-gray-900 mb-1">{t.settings.systemLanguage}</h4>
                 <p className="text-xs text-gray-500 leading-relaxed">{t.settings.languageDesc}</p>
               </div>
-              <div className="flex p-1 bg-gray-100 rounded-xl">
+              <div className="flex w-full sm:w-auto p-1 bg-gray-100 rounded-xl self-start sm:self-auto">
                 <button
                   onClick={() => handleLanguageChange("de")}
                   disabled={saving}
-                  className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${settings.language === "de" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                  className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all ${settings.language === "de" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
                 >
                   Deutsch
                 </button>
                 <button
                   onClick={() => handleLanguageChange("en")}
                   disabled={saving}
-                  className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${settings.language === "en" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                  className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all ${settings.language === "en" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
                 >
                   English
                 </button>

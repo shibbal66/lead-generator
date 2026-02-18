@@ -307,6 +307,11 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             (filteredLeads.filter((l) => l.pipelineStage === PipelineStage.CLOSED).length / filteredLeads.length) *
               100
           );
+  const conversionRateDisplay = useMemo(() => {
+    const n = Number(conversionRate);
+    if (!Number.isFinite(n)) return "0";
+    return n.toFixed(2).replace(/\.?0+$/, "");
+  }, [conversionRate]);
   const activeLeadsCount =
     isApiMode && apiPipelineData != null ? apiActiveLeads : filteredLeads.length;
   const leadsByOwnerCount =
@@ -374,7 +379,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   const locale = lang === "de" ? "de-DE" : "en-US";
 
   return (
-    <div className="flex-1 flex flex-col p-8 bg-white/50 backdrop-blur-sm rounded-3xl m-4 shadow-inner overflow-hidden relative">
+    <div className="flex-1 min-h-0 flex flex-col p-4 lg:p-8 bg-white/50 backdrop-blur-sm rounded-3xl m-2 lg:m-4 shadow-inner overflow-y-auto lg:overflow-hidden relative">
       {apiLoading && (
         <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-3xl">
           <Loader2 className="animate-spin text-blue-600" size={48} />
@@ -590,7 +595,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 {t.analytics.metrics.conversionRate}
               </p>
               <div className="flex items-baseline gap-2">
-                <h4 className="text-2xl font-black text-emerald-600">{conversionRate}%</h4>
+                <h4 className="text-2xl lg:text-3xl font-black text-emerald-600 leading-none break-all">{conversionRateDisplay}%</h4>
                 <ArrowUpRight size={16} className="text-emerald-500" />
               </div>
             </div>
