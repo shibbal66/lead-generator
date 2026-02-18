@@ -84,7 +84,8 @@ export const translations = {
       notificationBody: "{owner} hat einen Abschluss erzielt: {name} ({amount}{currency})",
       totalSum: "Gesamtsumme Abschlüsse",
       overview: "Übersicht der Abschlüsse",
-      noDeals: "Noch keine Abschlüsse erfasst."
+      noDeals: "Noch keine Abschlüsse erfasst.",
+      addAnotherDeal: "Weiteren Abschluss erfassen"
     },
     settings: {
       title: "Profil & Einstellungen",
@@ -230,6 +231,28 @@ export const translations = {
       comments: "Kommentare",
       files: "Dateien",
       linkedTodos: "Verknüpfte Aufgaben"
+    },
+    leadDetail: {
+      currentStatus: "Aktueller Status",
+      lastUpdated: "Zuletzt aktualisiert",
+      noProjectAssigned: "Kein Projekt zugeordnet",
+      addCommentPlaceholder: "Neuen Kommentar hinzufügen...",
+      uploadFile: "Datei hochladen",
+      noFilesUploaded: "Noch keine Dateien hochgeladen.",
+      noLinkedTasks: "Keine verknüpften Aufgaben.",
+      moreInfo: "Weitere Informationen",
+      socialMediaSearch: "Social Media Suche",
+      notSpecified: "Keine Angabe",
+      notGiven: "Nicht angegeben",
+      profile: "Profil",
+      socialMediaProfiles: "Social-Media-Profile",
+      download: "Herunterladen",
+      deleteFileConfirm: "Datei löschen?"
+    },
+    dealTypes: {
+      CONSULTING: "Beratung",
+      ONLINE_TRAINING: "Online Training",
+      OFFSITE: "Offsite"
     }
   },
   en: {
@@ -317,7 +340,8 @@ export const translations = {
       notificationBody: "{owner} closed a deal: {name} ({amount}{currency})",
       totalSum: "Total Deal Volume",
       overview: "Deals Overview",
-      noDeals: "No deals recorded yet."
+      noDeals: "No deals recorded yet.",
+      addAnotherDeal: "Add another deal"
     },
     settings: {
       title: "Profile & Settings",
@@ -462,6 +486,28 @@ export const translations = {
       comments: "Comments",
       files: "Files",
       linkedTodos: "Linked Tasks"
+    },
+    leadDetail: {
+      currentStatus: "Current Status",
+      lastUpdated: "Last updated",
+      noProjectAssigned: "No project assigned",
+      addCommentPlaceholder: "Add new comment...",
+      uploadFile: "Upload file",
+      noFilesUploaded: "No files uploaded yet.",
+      noLinkedTasks: "No linked tasks.",
+      moreInfo: "More information",
+      socialMediaSearch: "Social media search",
+      notSpecified: "Not specified",
+      notGiven: "Not given",
+      profile: "Profile",
+      socialMediaProfiles: "Social Media Profiles",
+      download: "Download",
+      deleteFileConfirm: "Delete file?"
+    },
+    dealTypes: {
+      CONSULTING: "Consulting",
+      ONLINE_TRAINING: "Online Training",
+      OFFSITE: "Offsite"
     }
   }
 };
