@@ -62,7 +62,7 @@ export const resetPassword = createAsyncThunk(
 
 export const bootstrapAuth = createAsyncThunk("auth/bootstrapAuth", async (_, { rejectWithValue }) => {
   const path = window.location.pathname.toLowerCase();
-  const publicAuthPaths = ["/sign-in", "/signin", "/login", "/sign-up", "/signup", "/forgot-password", "/reset-password"];
+  const publicAuthPaths = ["/sign-in", "/signin", "/login", "/signup", "/forgot-password", "/reset-password"];
   if (publicAuthPaths.some((publicPath) => path.startsWith(publicPath))) {
     return rejectWithValue("Public auth route");
   }
