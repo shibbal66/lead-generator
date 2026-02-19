@@ -10,6 +10,7 @@ type TaskApiResponse = {
   page?: number;
   limit?: number;
 };
+type TaskWithLeadItem = { tasks: TaskRecord; leads?: unknown };
 
 const parseJsonSafe = async (response: Response): Promise<TaskApiResponse> => {
   try {
@@ -69,9 +70,15 @@ export const taskApi = {
 
     const path = query.toString() ? `/task?${query.toString()}` : "/task";
     const response = await request(path, { method: "GET" });
+    const raw = response.tasks as TaskWithLeadItem[] | TaskRecord[] | undefined;
+    const tasks: TaskRecord[] = Array.isArray(raw)
+      ? raw.map((item: TaskWithLeadItem | TaskRecord) =>
+          "tasks" in item && item.tasks && typeof item.tasks === "object" ? item.tasks : (item as TaskRecord)
+        )
+      : [];
 
     return {
-      tasks: response.tasks || [],
+      tasks,
       total: response.total || 0,
       page: response.page || params?.page || 1,
       limit: response.limit || params?.limit || 10

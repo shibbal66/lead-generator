@@ -27,6 +27,15 @@ export const getLeads = createAsyncThunk("leads/getLeads", async (params: GetLea
   }
 });
 
+/** Fetches leads with status DELETED for the trash modal. */
+export const getDeletedLeads = createAsyncThunk("leads/getDeletedLeads", async (_, { rejectWithValue }) => {
+  try {
+    return await leadApi.getLeads({ status: "DELETED", page: 1, limit: 200 });
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : "Failed to fetch deleted leads");
+  }
+});
+
 export const getLeadById = createAsyncThunk("leads/getLeadById", async (leadId: string, { rejectWithValue }) => {
   try {
     return await leadApi.getLeadById(leadId);
@@ -35,10 +44,26 @@ export const getLeadById = createAsyncThunk("leads/getLeadById", async (leadId: 
   }
 });
 
-export const deleteLead = createAsyncThunk("leads/deleteLead", async (leadId: string, { rejectWithValue }) => {
+export const softDeleteLead = createAsyncThunk("leads/softDeleteLead", async (leadId: string, { rejectWithValue }) => {
   try {
-    return await leadApi.deleteLead(leadId);
+    return await leadApi.softDeleteLead(leadId);
   } catch (error) {
-    return rejectWithValue(error instanceof Error ? error.message : "Failed to delete lead");
+    return rejectWithValue(error instanceof Error ? error.message : "Failed to move lead to trash");
+  }
+});
+
+export const restoreLead = createAsyncThunk("leads/restoreLead", async (leadId: string, { rejectWithValue }) => {
+  try {
+    return await leadApi.restoreLead(leadId);
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : "Failed to restore lead");
+  }
+});
+
+export const hardDeleteLead = createAsyncThunk("leads/hardDeleteLead", async (leadId: string, { rejectWithValue }) => {
+  try {
+    return await leadApi.hardDeleteLead(leadId);
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : "Failed to permanently delete lead");
   }
 });

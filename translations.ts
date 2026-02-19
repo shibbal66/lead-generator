@@ -7,16 +7,16 @@ export const translations = {
       team: "Team",
       assignTask: "Aufgabe zuweisen",
       myArea: "Mein Bereich",
-      myTodos: "Meine ToDo's",
+      myTodos: "Meine ToDos",
       myProjects: "Meine Projekte",
       sentTasks: "Gesendete Aufgaben",
       administrator: "Administrator"
     },
     analytics: {
-      title: "Systemanalysen",
+      title: "Systemanalyse",
       subtitle: "Detaillierte Auswertung Ihrer Vertriebserfolge und Pipeline-Performance.",
       tabDeals: "Abschlüsse",
-      tabPipeline: "Trichter",
+      tabPipeline: "Vertriebspipeline",
       kpiTotal: "Gesamtvolumen",
       kpiConsulting: "Beratung",
       kpiTraining: "Online Trading",
@@ -25,7 +25,6 @@ export const translations = {
       chartOwnerPerformance: "Umsatz nach Berater",
       chartPipelineFunnel: "Pipeline Trichter",
       chartLeadsByOwner: "Leads pro Betreuer",
-      dealsUnit: "Abschlüsse",
       exportDeals: "Abschlüsse exportieren",
       exportModalTitle: "Export-Zeitraum wählen",
       exportModalSubtitle: "Wählen Sie den Zeitraum für den Excel-Export der Abschlüsse.",
@@ -43,7 +42,11 @@ export const translations = {
         dateFrom: "Von",
         dateTo: "Bis"
       },
-      noData: "Keine Daten für die gewählten Filter verfügbar."
+      noData: "Keine Daten für die gewählten Filter verfügbar.",
+      dealsUnit: "Abschlüsse",
+      leadsUnit: "Leads",
+      unknownLead: "Unbekannt",
+      noProject: "Kein Projekt"
     },
     header: {
       searchPlaceholder: "Suchen nach Name oder Position...",
@@ -52,13 +55,12 @@ export const translations = {
       sortBy: "Sortieren:",
       lastName: "Nachname",
       date: "Datum",
-      leads: "Leads",
       projects: "Projekte",
-      createProject: "Projekt anlegen",
       share: "Teilen",
       captureLead: "Lead erfassen",
-      signOut: "Abmelden",
-      exportTitle: "Alle Leads als Excel exportieren"
+      exportTitle: "Alle Leads als Excel exportieren",
+      createProject: "Projekt erstellen",
+      signOut: "Abmelden"
     },
     pipeline: {
       title: "Pipeline",
@@ -84,12 +86,12 @@ export const translations = {
       endLabel: "Ende",
       descLabel: "Kurzbeschreibung",
       saveButton: "Abschluss speichern",
+      captureAnother: "Weiteren Abschluss erfassen",
       notificationTitle: "Neuer Abschluss!",
       notificationBody: "{owner} hat einen Abschluss erzielt: {name} ({amount}{currency})",
       totalSum: "Gesamtsumme Abschlüsse",
       overview: "Übersicht der Abschlüsse",
-      noDeals: "Noch keine Abschlüsse erfasst.",
-      addAnotherDeal: "Weiteren Abschluss erfassen"
+      noDeals: "Noch keine Abschlüsse erfasst."
     },
     settings: {
       title: "Profil & Einstellungen",
@@ -111,7 +113,7 @@ export const translations = {
       comingSoon: "In Kürze verfügbar: Dark Mode & Akzentfarben."
     },
     todos: {
-      title: "ToDo Dashboard",
+      title: "Aufgaben-Dashboard",
       subtitle: "Aufgaben verwalten, delegieren und mit Leads verknüpfen.",
       assignedToMe: "Mir zugewiesene Aufgaben",
       from: "VON",
@@ -126,6 +128,8 @@ export const translations = {
       assignTo: "Zuweisen an",
       linkLead: "Mit Lead verknüpfen",
       noLead: "Keine Lead-Verknüpfung",
+      selectOwner: "Person auswählen",
+      selectLead: "Lead auswählen",
       myself: "Mich selbst",
       linkedLead: "Verknüpft:",
       assignedTo: "Verantwortlich:"
@@ -144,7 +148,11 @@ export const translations = {
       placeholder: "Name des Projekts",
       descPlaceholder: "Worum geht es in diesem Projekt?",
       searchLeads: "Lead suchen...",
-      assignLeads: "Leads zuordnen"
+      assignLeads: "Leads zuordnen",
+      deleteProjectTitle: "Projekt löschen",
+      deleteProjectDesc: "Möchten Sie dieses Projekt wirklich löschen?",
+      removeLead: "Lead aus Projekt entfernen",
+      updateBtn: "Änderungen speichern"
     },
     sentTasks: {
       title: "Gesendete Aufgaben",
@@ -157,6 +165,7 @@ export const translations = {
     },
     trash: {
       title: "Papierkorb",
+      openTitle: "Papierkorb öffnen / Lead zum Löschen hierher ziehen",
       subtitle: "Gelöschte Leads werden hier zwischengelagert.",
       restore: "Wiederherstellen",
       permanentDelete: "Endgültig löschen",
@@ -168,7 +177,9 @@ export const translations = {
       title: "Neuen Lead anlegen",
       step1: "Profil suchen",
       step2: "Details erfassen",
-      linkedinLabel: "LinkedIn Profil URL (Optional)",
+      linkedinLabel: "LinkedIn-Profil-URL (optional)",
+      linkedinPlaceholder: "https://www.linkedin.com/in/nutzername",
+      linkedinPlaceholderShort: "https://linkedin.com/in/...",
       enrichBtn: "Daten automatisch übernehmen",
       manualBtn: "Manuell fortfahren",
       firstName: "Vorname",
@@ -216,35 +227,50 @@ export const translations = {
       title: "Benutzerverwaltung",
       subtitle: "Verwalten Sie Ihr Team und überwachen Sie den Aktivierungs-Status.",
       inviteBtn: "Benutzer einladen",
+      searchPlaceholder: "Nach Name oder E-Mail suchen...",
+      colEmployee: "Mitarbeiter",
+      colRole: "Rolle",
+      colStatus: "Status",
+      colLastInvited: "Zuletzt eingeladen",
+      colInvitationExpiry: "Einladung gültig bis",
+      colActions: "Aktionen",
+      noUsers: "Keine Benutzer gefunden.",
+      resendInvite: "Einladung erneut senden",
+      disableUser: "Benutzer deaktivieren",
+      pageLabel: "Seite {page} von {total}",
+      previous: "Zurück",
+      next: "Weiter",
       inviteModalTitle: "Team einladen",
-      inviteModalDesc:
-        "Laden Sie Kollegen ein, um gemeinsam an der Lead-Pipeline zu arbeiten. Eingeladene Personen können Leads sehen, bearbeiten und neue hinzufügen.",
+      inviteModalDesc: "Laden Sie Teammitglieder per E-Mail ein. Sie erhalten einen Link zur Registrierung.",
       inviteModalEmailLabel: "E-Mail Adresse des Mitarbeiters",
       inviteModalEmailRequired: "E-Mail ist erforderlich.",
       inviteModalEmailInvalid: "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
       inviteModalRoleLabel: "Berechtigungsstufe",
       inviteModalRoleEditorDesc: "Kann Leads bearbeiten & erstellen",
       inviteModalRoleAdminDesc: "Vollzugriff & Teamverwaltung",
-      inviteModalNotice:
-        "Der Zugriff ist uneingeschränkt. Neue Mitglieder können alle vorhandenen Lead-Daten einsehen und die Pipeline verwalten.",
+      inviteModalNotice: "Eingeladene Nutzer erhalten eine E-Mail mit Anmeldelink. Die Einladung kann jederzeit storniert werden.",
       inviteModalSending: "Einladung wird gesendet...",
       inviteModalSend: "Einladung senden",
       inviteModalSuccessTitle: "Einladung gesendet!",
-      inviteModalSuccessBody:
-        "Eine Einladung wurde an {email} gesendet. Sobald der Mitarbeiter bestätigt, hat er vollen Zugriff auf alle Leads.",
-      inviteModalDone: "Fertig",
-      pageLabel: "Seite {page} von {total}",
-      previous: "Zurück",
-      next: "Weiter",
-      searchPlaceholder: "Nach Name oder E-Mail suchen...",
-      colEmployee: "Mitarbeiter",
-      colRole: "Rolle",
-      colStatus: "Status",
-      colLastInvited: "Zuletzt eingeladen",
-      colActions: "Aktionen",
-      noUsers: "Keine Benutzer gefunden.",
-      resendInvite: "Einladung erneut senden",
-      disableUser: "Benutzer deaktivieren"
+      inviteModalSuccessBody: "Eine Einladung wurde an {email} gesendet. Nach Annahme erhält das Teammitglied Zugriff auf alle Leads.",
+      inviteModalDone: "Fertig"
+    },
+    leadDetail: {
+      currentStatus: "Aktueller Status",
+      lastUpdated: "Zuletzt aktualisiert",
+      noProjectAssigned: "Kein Projekt zugeordnet",
+      noLinkedTasks: "Keine verknüpften Aufgaben.",
+      moreInfo: "Weitere Informationen",
+      socialMediaSearch: "Social Media Suche",
+      socialMediaProfile: "Social-Media-Profile",
+      addCommentPlaceholder: "Neuen Kommentar hinzufügen...",
+      uploadFile: "Datei hochladen",
+      noFilesUploaded: "Noch keine Dateien hochgeladen.",
+      notSpecified: "Keine Angabe",
+      deleteFileConfirm: "Datei löschen?",
+      download: "Herunterladen",
+      profileLink: "Profil",
+      errorUrlHttps: "URL muss mit https:// beginnen"
     },
     common: {
       loading: "Laden...",
@@ -254,29 +280,10 @@ export const translations = {
       edit: "Bearbeiten",
       comments: "Kommentare",
       files: "Dateien",
-      linkedTodos: "Verknüpfte Aufgaben"
-    },
-    leadDetail: {
-      currentStatus: "Aktueller Status",
-      lastUpdated: "Zuletzt aktualisiert",
-      noProjectAssigned: "Kein Projekt zugeordnet",
-      addCommentPlaceholder: "Neuen Kommentar hinzufügen...",
-      uploadFile: "Datei hochladen",
-      noFilesUploaded: "Noch keine Dateien hochgeladen.",
-      noLinkedTasks: "Keine verknüpften Aufgaben.",
-      moreInfo: "Weitere Informationen",
-      socialMediaSearch: "Social Media Suche",
-      notSpecified: "Keine Angabe",
-      notGiven: "Nicht angegeben",
-      profile: "Profil",
-      socialMediaProfiles: "Social-Media-Profile",
-      download: "Herunterladen",
-      deleteFileConfirm: "Datei löschen?"
-    },
-    dealTypes: {
-      CONSULTING: "Beratung",
-      ONLINE_TRAINING: "Online Training",
-      OFFSITE: "Offsite"
+      linkedTodos: "Verknüpfte Aufgaben",
+      pageLabel: "Seite {page} von {total}",
+      previous: "Zurück",
+      next: "Weiter"
     }
   },
   en: {
@@ -305,7 +312,6 @@ export const translations = {
       chartOwnerPerformance: "Revenue by Consultant",
       chartPipelineFunnel: "Pipeline Funnel",
       chartLeadsByOwner: "Leads per Owner",
-      dealsUnit: "Deals",
       exportDeals: "Export Deals",
       exportModalTitle: "Select Export Period",
       exportModalSubtitle: "Choose the timeframe for the Excel deal export.",
@@ -323,7 +329,11 @@ export const translations = {
         dateFrom: "From",
         dateTo: "To"
       },
-      noData: "No data available for the selected filters."
+      noData: "No data available for the selected filters.",
+      dealsUnit: "Deals",
+      leadsUnit: "Leads",
+      unknownLead: "Unknown",
+      noProject: "No project"
     },
     header: {
       searchPlaceholder: "Search for name or position...",
@@ -332,13 +342,12 @@ export const translations = {
       sortBy: "Sort by:",
       lastName: "Last Name",
       date: "Date",
-      leads: "Leads",
       projects: "Projects",
-      createProject: "Create Project",
       share: "Share",
       captureLead: "Lead",
-      signOut: "Sign out",
-      exportTitle: "Export all leads to Excel"
+      exportTitle: "Export all leads to Excel",
+      createProject: "Create project",
+      signOut: "Sign out"
     },
     pipeline: {
       title: "Pipeline",
@@ -364,12 +373,12 @@ export const translations = {
       endLabel: "End",
       descLabel: "Short Description",
       saveButton: "Save Deal",
+      captureAnother: "Capture another deal",
       notificationTitle: "New Deal!",
       notificationBody: "{owner} closed a deal: {name} ({amount}{currency})",
       totalSum: "Total Deal Volume",
       overview: "Deals Overview",
-      noDeals: "No deals recorded yet.",
-      addAnotherDeal: "Add another deal"
+      noDeals: "No deals recorded yet."
     },
     settings: {
       title: "Profile & Settings",
@@ -405,6 +414,8 @@ export const translations = {
       assignTo: "Assign to",
       linkLead: "Link to Lead",
       noLead: "No lead link",
+      selectOwner: "Select person",
+      selectLead: "Select lead",
       myself: "Myself",
       linkedLead: "Linked:",
       assignedTo: "Responsible:"
@@ -423,7 +434,11 @@ export const translations = {
       placeholder: "Project Name",
       descPlaceholder: "What is this project about?",
       searchLeads: "Search leads...",
-      assignLeads: "Assign leads"
+      assignLeads: "Assign leads",
+      deleteProjectTitle: "Delete project",
+      deleteProjectDesc: "Are you sure you want to delete this project?",
+      removeLead: "Remove lead from project",
+      updateBtn: "Save changes"
     },
     sentTasks: {
       title: "Sent Tasks",
@@ -436,6 +451,7 @@ export const translations = {
     },
     trash: {
       title: "Trash",
+      openTitle: "Open trash / Drag lead here to delete",
       subtitle: "Deleted leads are temporarily stored here.",
       restore: "Restore",
       permanentDelete: "Permanently delete",
@@ -448,6 +464,8 @@ export const translations = {
       step1: "Search Profile",
       step2: "Capture Details",
       linkedinLabel: "LinkedIn Profile URL (Optional)",
+      linkedinPlaceholder: "https://www.linkedin.com/in/username",
+      linkedinPlaceholderShort: "https://linkedin.com/in/...",
       enrichBtn: "Auto-fill Data",
       manualBtn: "Continue Manually",
       firstName: "First Name",
@@ -495,35 +513,50 @@ export const translations = {
       title: "User Management",
       subtitle: "Manage your team and monitor activation status.",
       inviteBtn: "Invite User",
+      searchPlaceholder: "Search by name or email...",
+      colEmployee: "Employee",
+      colRole: "Role",
+      colStatus: "Status",
+      colLastInvited: "Last Invited",
+      colInvitationExpiry: "Invitation expires",
+      colActions: "Actions",
+      noUsers: "No users found.",
+      resendInvite: "Resend Invitation",
+      disableUser: "Disable User",
+      pageLabel: "Page {page} of {total}",
+      previous: "Previous",
+      next: "Next",
       inviteModalTitle: "Invite Team",
-      inviteModalDesc:
-        "Invite colleagues to collaborate on the lead pipeline. Invited people can view, edit, and add new leads.",
+      inviteModalDesc: "Invite team members by email. They will receive a link to sign up.",
       inviteModalEmailLabel: "Employee Email Address",
       inviteModalEmailRequired: "Email is required.",
       inviteModalEmailInvalid: "Please enter a valid email address.",
       inviteModalRoleLabel: "Permission Level",
       inviteModalRoleEditorDesc: "Can edit and create leads",
       inviteModalRoleAdminDesc: "Full access & team management",
-      inviteModalNotice:
-        "Access is unrestricted. New members can view all existing lead data and manage the pipeline.",
+      inviteModalNotice: "Invited users will receive an email with a sign-up link. The invitation can be cancelled at any time.",
       inviteModalSending: "Sending invitation...",
       inviteModalSend: "Send invitation",
       inviteModalSuccessTitle: "Invitation sent!",
-      inviteModalSuccessBody:
-        "An invitation was sent to {email}. Once accepted, the team member will get full access to all leads.",
-      inviteModalDone: "Done",
-      pageLabel: "Page {page} of {total}",
-      previous: "Previous",
-      next: "Next",
-      searchPlaceholder: "Search by name or email...",
-      colEmployee: "Employee",
-      colRole: "Role",
-      colStatus: "Status",
-      colLastInvited: "Last Invited",
-      colActions: "Actions",
-      noUsers: "No users found.",
-      resendInvite: "Resend Invitation",
-      disableUser: "Disable User"
+      inviteModalSuccessBody: "An invitation was sent to {email}. Once accepted, the team member will get access to all leads.",
+      inviteModalDone: "Done"
+    },
+    leadDetail: {
+      currentStatus: "Current Status",
+      lastUpdated: "Last updated",
+      noProjectAssigned: "No project assigned",
+      noLinkedTasks: "No linked tasks.",
+      moreInfo: "More information",
+      socialMediaSearch: "Social media search",
+      socialMediaProfile: "Social media profiles",
+      addCommentPlaceholder: "Add new comment...",
+      uploadFile: "Upload file",
+      noFilesUploaded: "No files uploaded yet.",
+      notSpecified: "Not specified",
+      deleteFileConfirm: "Delete file?",
+      download: "Download",
+      profileLink: "Profile",
+      errorUrlHttps: "URL must start with https://"
     },
     common: {
       loading: "Loading...",
@@ -533,29 +566,10 @@ export const translations = {
       edit: "Edit",
       comments: "Comments",
       files: "Files",
-      linkedTodos: "Linked Tasks"
-    },
-    leadDetail: {
-      currentStatus: "Current Status",
-      lastUpdated: "Last updated",
-      noProjectAssigned: "No project assigned",
-      addCommentPlaceholder: "Add new comment...",
-      uploadFile: "Upload file",
-      noFilesUploaded: "No files uploaded yet.",
-      noLinkedTasks: "No linked tasks.",
-      moreInfo: "More information",
-      socialMediaSearch: "Social media search",
-      notSpecified: "Not specified",
-      notGiven: "Not given",
-      profile: "Profile",
-      socialMediaProfiles: "Social Media Profiles",
-      download: "Download",
-      deleteFileConfirm: "Delete file?"
-    },
-    dealTypes: {
-      CONSULTING: "Consulting",
-      ONLINE_TRAINING: "Online Training",
-      OFFSITE: "Offsite"
+      linkedTodos: "Linked Tasks",
+      pageLabel: "Page {page} of {total}",
+      previous: "Previous",
+      next: "Next"
     }
   }
 };

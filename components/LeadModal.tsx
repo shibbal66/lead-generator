@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useFormik } from "formik";
 import { X, Linkedin, Loader2, ChevronRight, Check } from "lucide-react";
 import * as Yup from "yup";
 import { Lead, PipelineStage } from "../types";
 import { api } from "../services/api";
+import { FORM_MAX_LENGTH } from "../constants";
 import { translations, Language } from "../translations";
 
 interface LeadModalProps {
@@ -11,9 +12,11 @@ interface LeadModalProps {
   onSave: (lead: Partial<Lead>) => void;
   owners: Array<{ id: string; name: string }>;
   lang: Language;
+  /** API validation error to show in the form instead of a toast */
+  apiError?: string | null;
 }
 
-const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) => {
+const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, apiError }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [enrichmentError, setEnrichmentError] = useState("");
@@ -34,26 +37,39 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
     }
   };
 
+  const validatePhone = (value: string | undefined): boolean => {
+    const normalized = typeof value === "string" ? value.trim() : "";
+    if (!normalized) return true;
+    if (!/^\+?[\d\s\-()]+$/.test(normalized)) return false;
+    if (/^[\s\-()]+$/.test(normalized) || normalized === "+") return false;
+    const digitsOnly = normalized.replace(/\D/g, "");
+    return digitsOnly.length >= 5 && digitsOnly.length <= 15;
+  };
+
   const validationSchema = useMemo(
     () =>
       Yup.object({
         firstName: Yup.string()
           .trim()
           .required(isDe ? "Vorname ist erforderlich" : "First name is required")
+          .max(FORM_MAX_LENGTH.leadFirstName, isDe ? `Max. ${FORM_MAX_LENGTH.leadFirstName} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadFirstName} characters`)
           .matches(noDigitsPattern, isDe ? "Vorname darf keine Zahlen enthalten" : "First name cannot contain numbers")
           .matches(lettersOnlyPattern, isDe ? "Vorname enthält ungültige Zeichen" : "First name contains invalid characters"),
         lastName: Yup.string()
           .trim()
           .required(isDe ? "Nachname ist erforderlich" : "Last name is required")
+          .max(FORM_MAX_LENGTH.leadLastName, isDe ? `Max. ${FORM_MAX_LENGTH.leadLastName} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadLastName} characters`)
           .matches(noDigitsPattern, isDe ? "Nachname darf keine Zahlen enthalten" : "Last name cannot contain numbers")
           .matches(lettersOnlyPattern, isDe ? "Nachname enthält ungültige Zeichen" : "Last name contains invalid characters"),
         currentPosition: Yup.string()
           .trim()
           .required(isDe ? "Position ist erforderlich" : "Position is required")
+          .max(FORM_MAX_LENGTH.leadPosition, isDe ? `Max. ${FORM_MAX_LENGTH.leadPosition} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadPosition} characters`)
           .matches(noDigitsPattern, isDe ? "Position darf keine Zahlen enthalten" : "Position cannot contain numbers")
           .matches(lettersOnlyPattern, isDe ? "Position enthält ungültige Zeichen" : "Position contains invalid characters"),
         company: Yup.string()
           .trim()
+          .max(FORM_MAX_LENGTH.leadCompany, isDe ? `Max. ${FORM_MAX_LENGTH.leadCompany} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadCompany} characters`)
           .test(
             "company-chars",
             isDe ? "Firma darf nur Buchstaben, Zahlen und Leerzeichen enthalten" : "Company can only contain letters, numbers, and spaces",
@@ -65,22 +81,19 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
         ownerName: Yup.string().trim().required(isDe ? "Betreuer ist erforderlich" : "Owner is required"),
         email: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
-          .required("Email must be a valid email address")
-          .test("email-or-empty", "Email must be a valid email address", (value) => {
+          .max(FORM_MAX_LENGTH.leadEmail, isDe ? `Max. ${FORM_MAX_LENGTH.leadEmail} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadEmail} characters`)
+          .test("email-format", isDe ? "Ungültige E-Mail-Adresse" : "Email must be a valid email address", (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
-            if (!normalized) return false;
+            if (!normalized) return true;
             return Yup.string().email().isValidSync(normalized);
           }),
         phone: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
-          .required("Phone must contain only digits, spaces, and an optional leading +")
-          .test("phone-or-empty", "Phone must contain only digits, spaces, and an optional leading +", (value) => {
-            const normalized = typeof value === "string" ? value.trim() : "";
-            if (!normalized) return false;
-            return /^\+?\d[\d\s]*$/.test(normalized);
-          }),
+          .max(FORM_MAX_LENGTH.leadPhone, isDe ? `Max. ${FORM_MAX_LENGTH.leadPhone} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadPhone} characters`)
+          .test("phone-valid", isDe ? "Ungültige Telefonnummer (5–15 Ziffern, nur + - ( ) und Leerzeichen)" : "Invalid phone (5–15 digits; only +, spaces, dashes, parentheses)", (value) => validatePhone(value)),
         linkedinUrl: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
+          .max(FORM_MAX_LENGTH.leadUrl, isDe ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`)
           .test("valid-linkedin-url", isDe ? "Ungültige LinkedIn URL" : "Invalid LinkedIn URL", (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
@@ -112,6 +125,28 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
       onSave(values);
     }
   });
+
+  useEffect(() => {
+    if (!apiError || !formik.setFieldError) return;
+    const msg = apiError.trim();
+    const parts = msg.split(',').map((p) => p.trim()).filter(Boolean);
+    let mapped = false;
+    for (const part of parts) {
+      if (/company/i.test(part)) {
+        formik.setFieldError("company", part);
+        mapped = true;
+      } else if (/email/i.test(part)) {
+        formik.setFieldError("email", part);
+        mapped = true;
+      } else if (/phone/i.test(part)) {
+        formik.setFieldError("phone", part);
+        mapped = true;
+      }
+    }
+    if (mapped) {
+      formik.setTouched({ company: true, email: true, phone: true }, false);
+    }
+  }, [apiError]);
 
   const handleEnrich = async () => {
     if (!formik.values.linkedinUrl || !Yup.string().url().isValidSync(formik.values.linkedinUrl) || !formik.values.linkedinUrl.includes("linkedin.com")) {
@@ -153,16 +188,22 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
         <div className="p-8 h-[75vh] overflow-y-auto custom-scrollbar">
           {/* Stepper */}
           <div className="flex items-center mb-8">
-            <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-colors ${step >= 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-500"}`}
-            >
-              1
+            <div className="flex items-center gap-2">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-colors shrink-0 ${step >= 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-500"}`}
+              >
+                1
+              </div>
+              <span className={`text-xs font-medium hidden sm:inline ${step >= 1 ? "text-gray-700" : "text-gray-400"}`}>{t.leadModal.step1}</span>
             </div>
-            <div className={`flex-1 h-0.5 mx-3 ${step >= 2 ? "bg-blue-600" : "bg-gray-200"}`} />
-            <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-colors ${step >= 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-500"}`}
-            >
-              2
+            <div className={`flex-1 h-0.5 mx-3 min-w-[12px] ${step >= 2 ? "bg-blue-600" : "bg-gray-200"}`} />
+            <div className="flex items-center gap-2">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-colors shrink-0 ${step >= 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-500"}`}
+              >
+                2
+              </div>
+              <span className={`text-xs font-medium hidden sm:inline ${step >= 2 ? "text-gray-700" : "text-gray-400"}`}>{t.leadModal.step2}</span>
             </div>
           </div>
 
@@ -177,10 +218,11 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
                   <input
                     type="url"
                     name="linkedinUrl"
+                    maxLength={FORM_MAX_LENGTH.leadUrl}
                     value={formik.values.linkedinUrl || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    placeholder="https://www.linkedin.com/in/nutzername"
+                    placeholder={t.leadModal.linkedinPlaceholder}
                     className="w-full pl-10 pr-4 py-3 border-gray-200 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   />
                 </div>
@@ -211,6 +253,11 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
             </div>
           ) : (
             <form onSubmit={formik.handleSubmit} className="space-y-4 pb-4">
+              {apiError && !formik.errors.company && !formik.errors.email && !formik.errors.phone && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-100">
+                  <p className="text-sm font-medium text-red-700">{apiError}</p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
@@ -219,6 +266,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
                   <input
                     name="firstName"
                     type="text"
+                    maxLength={FORM_MAX_LENGTH.leadFirstName}
                     value={formik.values.firstName || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
@@ -235,6 +283,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
                   <input
                     name="lastName"
                     type="text"
+                    maxLength={FORM_MAX_LENGTH.leadLastName}
                     value={formik.values.lastName || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
@@ -254,6 +303,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
                   <input
                     name="currentPosition"
                     type="text"
+                    maxLength={FORM_MAX_LENGTH.leadPosition}
                     value={formik.values.currentPosition || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
@@ -268,11 +318,15 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
                   <input
                     name="company"
                     type="text"
+                    maxLength={FORM_MAX_LENGTH.leadCompany}
                     value={formik.values.company || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                   />
+                  {(formik.touched.company || formik.errors.company) && formik.errors.company && (
+                    <p className="mt-1 text-xs text-red-500">{formik.errors.company}</p>
+                  )}
                 </div>
               </div>
 
@@ -305,6 +359,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
                   <input
                     name="email"
                     type="email"
+                    maxLength={FORM_MAX_LENGTH.leadEmail}
                     value={formik.values.email || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
@@ -319,6 +374,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
                   <input
                     name="phone"
                     type="tel"
+                    maxLength={FORM_MAX_LENGTH.leadPhone}
                     value={formik.values.phone || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
@@ -340,10 +396,11 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang }) 
                   <input
                     name="linkedinUrl"
                     type="url"
+                    maxLength={FORM_MAX_LENGTH.leadUrl}
                     value={formik.values.linkedinUrl || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    placeholder="https://linkedin.com/in/..."
+                    placeholder={t.leadModal.linkedinPlaceholderShort}
                     className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                   />
                 </div>

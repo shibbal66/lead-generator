@@ -12,11 +12,11 @@ import {
   Users
 } from "lucide-react";
 import { translations, Language } from "../translations";
+import { FORM_MAX_LENGTH } from "../constants";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { createTask, getTasks, updateTask } from "../store/actions/taskActions";
 import { getLeads } from "../store/actions/leadActions";
 import { getUsers } from "../store/actions/userActions";
-import { pushLocalNotification } from "../store/slices/notificationSlice";
 
 interface TodoDashboardProps {
   lang: Language;
@@ -63,7 +63,17 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
     e.preventDefault();
     const summary = text.trim();
 
-    setTextError(summary ? "" : lang === "de" ? "Aufgabe ist erforderlich." : "Task is required.");
+    setTextError(
+      !summary
+        ? lang === "de"
+          ? "Aufgabe ist erforderlich."
+          : "Task is required."
+        : summary.length > FORM_MAX_LENGTH.todoDescription
+          ? lang === "de"
+            ? `Max. ${FORM_MAX_LENGTH.todoDescription} Zeichen`
+            : `Max. ${FORM_MAX_LENGTH.todoDescription} characters`
+          : ""
+    );
     setOwnerError(selectedOwnerId ? "" : lang === "de" ? "Verantwortliche Person ist erforderlich." : "Owner is required.");
     setLeadError(selectedLeadId ? "" : lang === "de" ? "Lead ist erforderlich." : "Lead is required.");
     setDeadlineError(
@@ -78,7 +88,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
           : ""
     );
 
-    if (!summary || !selectedOwnerId || !selectedLeadId || !deadline) return;
+    if (!summary || summary.length > FORM_MAX_LENGTH.todoDescription || !selectedOwnerId || !selectedLeadId || !deadline) return;
     if (deadline < today) {
       setDeadlineError(lang === "de" ? "Deadline darf nicht in der Vergangenheit liegen." : "Deadline cannot be a past date.");
       return;
@@ -105,7 +115,6 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
 
   const handleToggleTodo = async (taskId: string, completed: boolean) => {
     const nextCompleted = !completed;
-    const targetTask = tasks.find((task) => task.id === taskId);
     const result = await dispatch(
       updateTask({
         taskId,
@@ -116,16 +125,6 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
     if (!updateTask.fulfilled.match(result)) {
       console.error("[TodoDashboard] update task rejected", result);
       return;
-    }
-
-    if (nextCompleted) {
-      const taskName = targetTask?.description || (lang === "de" ? "Unbenannte Aufgabe" : "Untitled task");
-      dispatch(
-        pushLocalNotification({
-          type: "TASK_COMPLETED",
-          message: lang === "de" ? `Aufgabe erledigt: ${taskName}` : `Task completed: ${taskName}`
-        })
-      );
     }
   };
 
@@ -176,6 +175,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                     type="text"
                     value={text}
                     required
+                    maxLength={FORM_MAX_LENGTH.todoDescription}
                     onChange={(e) => {
                       setText(e.target.value);
                       if (e.target.value.trim()) setTextError("");
@@ -201,7 +201,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                       }}
                       className="w-full pl-9 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-xs font-bold text-gray-600 appearance-none"
                     >
-                      <option value="">{lang === "de" ? "Person auswählen" : "Select owner"}</option>
+                      <option value="">{t.todos.selectOwner}</option>
                       {owners
                         .filter((owner) => owner.id !== currentUserId)
                         .map((owner) => (
@@ -229,7 +229,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                       }}
                       className="w-full pl-9 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-xs font-bold text-gray-600 appearance-none"
                     >
-                      <option value="">{lang === "de" ? "Lead auswählen" : "Select lead"}</option>
+                      <option value="">{t.todos.selectLead}</option>
                       {leads.map((l) => (
                         <option key={l.id} value={l.id}>
                           {l.firstName} {l.lastName}
@@ -339,7 +339,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
         <p className="text-xs font-semibold text-gray-500">
-          {lang === "de" ? `Seite ${page} von ${totalPages}` : `Page ${page} of ${totalPages}`}
+          {t.common.pageLabel.replace("{page}", String(page)).replace("{total}", String(totalPages))}
         </p>
         <div className="flex items-center gap-2">
           <button
@@ -348,7 +348,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
             disabled={page <= 1 || loading}
             className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 disabled:opacity-40"
           >
-            {lang === "de" ? "Zuruck" : "Previous"}
+            {t.common.previous}
           </button>
           <button
             type="button"
@@ -356,7 +356,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
             disabled={page >= totalPages || loading}
             className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 disabled:opacity-40"
           >
-            {lang === "de" ? "Weiter" : "Next"}
+            {t.common.next}
           </button>
         </div>
       </div>

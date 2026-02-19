@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Clock,
   Trash2,
+  XCircle,
   Search,
   Loader2,
   AlertCircle
@@ -14,7 +15,12 @@ import ShareModal from "./ShareModal";
 import Toast from "./Toast";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { deleteTeamMember, getTeamMembers, inviteTeamMember } from "../store/actions/teamActions";
+import {
+  cancelTeamInvitation,
+  deleteTeamMember,
+  getTeamMembers,
+  inviteTeamMember
+} from "../store/actions/teamActions";
 import { getUserById } from "../store/actions/userActions";
 
 interface UserManagementDashboardProps {
@@ -23,13 +29,15 @@ interface UserManagementDashboardProps {
 
 const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang }) => {
   const dispatch = useAppDispatch();
-  const { members, listStatus, total, limit: apiLimit } = useAppSelector((state) => state.team);
+  const { members, invitations, listStatus, total, limit: apiLimit } = useAppSelector((state) => state.team);
   const authUserTeamId = useAppSelector((state) => state.auth.user?.teamId);
   const currentUserId = useAppSelector((state) => state.auth.user?.userId);
   const selectedUser = useAppSelector((state) => state.users.selectedUser);
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [cancelingInvitationId, setCancelingInvitationId] = useState<string | null>(null);
   const [pendingDeleteUser, setPendingDeleteUser] = useState<{ id: string; name: string } | null>(null);
+  const [pendingCancelInvitation, setPendingCancelInvitation] = useState<{ id: string; email: string } | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -44,6 +52,34 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
   const t = useMemo(() => translations[lang], [lang]);
   const loading = listStatus === "loading";
   const totalPages = Math.max(1, Math.ceil(total / (apiLimit || limit)));
+  const apiInvitations = useMemo(
+    () =>
+      invitations.filter((invitation) => {
+        const id = invitation.id || invitation.invitationId || "";
+        return !id.startsWith("local-");
+      }),
+    [invitations]
+  );
+  const rows = useMemo(
+    () => [
+      ...members.map((member) => ({ type: "member" as const, data: member })),
+      ...apiInvitations.map((invitation) => ({ type: "invitation" as const, data: invitation }))
+    ],
+    [apiInvitations, members]
+  );
+
+  useEffect(() => {
+    console.log("[Team UI] members", members);
+    console.log("[Team UI] invitations", apiInvitations);
+    console.log("[Team UI] combined rows", rows);
+  }, [apiInvitations, members, rows]);
+
+  const formatDate = (value?: string) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleDateString(lang === "de" ? "de-DE" : "en-US");
+  };
 
   useEffect(() => {
     if (authUserTeamId) {
@@ -99,6 +135,36 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
     setDeletingId(null);
   };
 
+  const handleCancelInvitation = async (invitationId: string) => {
+    if (!invitationId || invitationId.startsWith("local-")) {
+      const message =
+        lang === "de"
+          ? "Ungültige Einladungs-ID. Bitte laden Sie die Teamliste neu."
+          : "Invalid invitation ID. Please refresh the team list.";
+      setError(message);
+      setToastState({ open: true, type: "error", message });
+      return;
+    }
+    setCancelingInvitationId(invitationId);
+    setError(null);
+    console.log("[Team] cancel invitation requested", { invitationId });
+    const action = await dispatch(cancelTeamInvitation(invitationId));
+    if (cancelTeamInvitation.fulfilled.match(action)) {
+      console.log("[Team] cancel invitation success", action.payload);
+      setToastState({
+        open: true,
+        type: "success",
+        message: action.payload.message || (lang === "de" ? "Einladung storniert." : "Invitation canceled.")
+      });
+    } else {
+      const message = (action.payload as string) || (lang === "de" ? "Einladung konnte nicht storniert werden." : "Failed to cancel invitation");
+      console.error("[Team] cancel invitation failed", action);
+      setError(message);
+      setToastState({ open: true, type: "error", message });
+    }
+    setCancelingInvitationId(null);
+  };
+
   return (
     <div className="flex-1 flex flex-col p-8 bg-white/50 backdrop-blur-sm rounded-3xl m-4 shadow-inner overflow-hidden">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
@@ -147,7 +213,7 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
                   {t.userMgmt.colStatus}
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  {t.userMgmt.colLastInvited}
+                  {t.userMgmt.colInvitationExpiry}
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">
                   {t.userMgmt.colActions}
@@ -161,66 +227,121 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
                     <Loader2 className="animate-spin text-blue-600 mx-auto" size={32} />
                   </td>
                 </tr>
-              ) : members.length === 0 ? (
+              ) : rows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-20 text-center italic text-gray-400 text-sm">
                     {t.userMgmt.noUsers}
                   </td>
                 </tr>
               ) : (
-                members.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
-                          {user.name
-                            .split(" ")
-                            .filter(Boolean)
-                            .slice(0, 2)
-                            .map((part) => part[0]?.toUpperCase() || "")
-                            .join("")}
+                rows.map((row) => {
+                  if (row.type === "member") {
+                    const user = row.data;
+                    return (
+                      <tr key={`member-${user.id}`} className="hover:bg-gray-50/50 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                              {user.name
+                                .split(" ")
+                                .filter(Boolean)
+                                .slice(0, 2)
+                                .map((part) => part[0]?.toUpperCase() || "")
+                                .join("")}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-gray-900">{user.name}</p>
+                              <p className="text-xs text-gray-400">{user.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+                            <Shield size={14} className="text-gray-300" />
+                            {user.role}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                              user.status === "ACTIVE"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                : "bg-gray-50 text-gray-500 border-gray-100"
+                            }`}
+                          >
+                            {user.status === "ACTIVE" ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                            {user.status}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-[10px] text-gray-300">-</span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => setPendingDeleteUser({ id: user.id, name: user.name })}
+                              disabled={deletingId === user.id}
+                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-all"
+                              title={t.common.delete}
+                            >
+                              {deletingId === user.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  const invitation = row.data;
+                  const invitationId = invitation.id || invitation.invitationId || "";
+                  const invitationStatus = invitation.status || "PENDING";
+                  return (
+                    <tr key={`invitation-${invitationId}`} className="hover:bg-gray-50/50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">
+                            {invitation.email?.[0]?.toUpperCase() || "I"}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">{invitation.name || invitation.email}</p>
+                            <p className="text-xs text-gray-400">{invitation.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-900">{user.name}</p>
-                          <p className="text-xs text-gray-400">{user.email}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+                          <Shield size={14} className="text-gray-300" />
+                          {invitation.role}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-                        <Shield size={14} className="text-gray-300" />
-                        {user.role}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                          user.status === "ACTIVE"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                            : "bg-gray-50 text-gray-500 border-gray-100"
-                        }`}
-                      >
-                        {user.status === "ACTIVE" ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                        {user.status}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-[10px] text-gray-300">-</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => setPendingDeleteUser({ id: user.id, name: user.name })}
-                          disabled={deletingId === user.id}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-all"
-                          title={t.common.delete}
-                        >
-                          {deletingId === user.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border bg-amber-50 text-amber-700 border-amber-100">
+                          <Clock size={12} />
+                          {invitationStatus}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs text-gray-500">{formatDate(invitation.expiresAt)}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setPendingCancelInvitation({ id: invitationId, email: invitation.email })}
+                            disabled={cancelingInvitationId === invitationId}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-all"
+                            title={lang === "de" ? "Einladung stornieren" : "Cancel invitation"}
+                          >
+                            {cancelingInvitationId === invitationId ? (
+                              <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                              <XCircle size={16} />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -248,7 +369,9 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
       )}
       <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
         <p className="text-xs font-semibold text-gray-500">
-          {t.userMgmt.pageLabel.replace("{page}", String(page)).replace("{total}", String(totalPages))}
+          {(t.userMgmt.pageLabel ?? "Page {page} of {total}")
+            .replace("{page}", String(page))
+            .replace("{total}", String(totalPages))}
         </p>
         <div className="flex items-center gap-2">
           <button
@@ -295,6 +418,28 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
           if (!pendingDeleteUser) return;
           await handleDeleteUser(pendingDeleteUser.id);
           setPendingDeleteUser(null);
+        }}
+      />
+      <ConfirmDeleteModal
+        isOpen={Boolean(pendingCancelInvitation)}
+        title={lang === "de" ? "Einladung stornieren?" : "Cancel invitation?"}
+        description={
+          pendingCancelInvitation
+            ? lang === "de"
+              ? `Möchten Sie die Einladung für ${pendingCancelInvitation.email} wirklich stornieren?`
+              : `Are you sure you want to cancel the invitation for ${pendingCancelInvitation.email}?`
+            : ""
+        }
+        confirmLabel={lang === "de" ? "Stornieren" : "Cancel Invitation"}
+        cancelLabel={lang === "de" ? "Abbrechen" : "Keep"}
+        onCancel={() => {
+          if (cancelingInvitationId) return;
+          setPendingCancelInvitation(null);
+        }}
+        onConfirm={async () => {
+          if (!pendingCancelInvitation) return;
+          await handleCancelInvitation(pendingCancelInvitation.id);
+          setPendingCancelInvitation(null);
         }}
       />
     </div>

@@ -1,6 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-import { deleteTeamMember, getInvitationById, getTeamMembers, inviteTeamMember } from "../actions/teamActions";
+import {
+  cancelTeamInvitation,
+  deleteTeamMember,
+  getInvitationById,
+  getTeamMembers,
+  inviteTeamMember
+} from "../actions/teamActions";
 
 export type TeamRole = "ADMIN" | "EDITOR" | "VIEWER" | string;
 export type TeamStatus = "ACTIVE" | "INACTIVE" | string;
@@ -18,9 +24,15 @@ export type TeamMember = {
 
 export type TeamInvitation = {
   id: string;
+  invitationId?: string;
   email: string;
   role: TeamRole;
+  status?: string;
+  name?: string;
+  createdAt?: string;
+  invitedAt?: string;
   expiresAt?: string;
+  teamId?: string;
 };
 
 export type GetTeamMembersParams = {
@@ -43,6 +55,7 @@ type AsyncStatus = "idle" | "loading" | "succeeded" | "failed";
 
 type TeamState = {
   members: TeamMember[];
+  invitations: TeamInvitation[];
   invitation: TeamInvitation | null;
   total: number;
   page: number;
@@ -51,12 +64,14 @@ type TeamState = {
   inviteStatus: AsyncStatus;
   invitationStatus: AsyncStatus;
   deleteStatus: AsyncStatus;
+  cancelInvitationStatus: AsyncStatus;
   error: string | null;
   successMessage: string | null;
 };
 
 const initialState: TeamState = {
   members: [],
+  invitations: [],
   invitation: null,
   total: 0,
   page: 1,
@@ -65,6 +80,7 @@ const initialState: TeamState = {
   inviteStatus: "idle",
   invitationStatus: "idle",
   deleteStatus: "idle",
+  cancelInvitationStatus: "idle",
   error: null,
   successMessage: null
 };
@@ -91,6 +107,7 @@ const teamSlice = createSlice({
       .addCase(getTeamMembers.fulfilled, (state, action) => {
         state.listStatus = "succeeded";
         state.members = action.payload.users;
+        state.invitations = action.payload.invitations || [];
         state.total = action.payload.total;
         state.page = action.payload.page;
         state.limit = action.payload.limit;
@@ -138,6 +155,22 @@ const teamSlice = createSlice({
       .addCase(deleteTeamMember.rejected, (state, action) => {
         state.deleteStatus = "failed";
         state.error = (action.payload as string) || "Failed to delete team member";
+      })
+      .addCase(cancelTeamInvitation.pending, (state) => {
+        state.cancelInvitationStatus = "loading";
+        state.error = null;
+        state.successMessage = null;
+      })
+      .addCase(cancelTeamInvitation.fulfilled, (state, action) => {
+        state.cancelInvitationStatus = "succeeded";
+        state.successMessage = action.payload.message;
+        state.invitations = state.invitations.filter(
+          (invitation) => invitation.id !== action.payload.invitationId
+        );
+      })
+      .addCase(cancelTeamInvitation.rejected, (state, action) => {
+        state.cancelInvitationStatus = "failed";
+        state.error = (action.payload as string) || "Failed to cancel invitation";
       });
   }
 });

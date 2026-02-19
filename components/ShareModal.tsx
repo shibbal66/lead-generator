@@ -54,7 +54,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ lang, onClose, onInvite }) => {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">{t.userMgmt.inviteModalSuccessTitle}</h2>
           <p className="text-gray-500 mb-8">
-            {t.userMgmt.inviteModalSuccessBody.replace("{email}", invitedEmail)}
+            {(t.userMgmt.inviteModalSuccessBody ?? "An invitation was sent to {email}.").replace("{email}", invitedEmail)}
           </p>
           <button
             onClick={onClose}

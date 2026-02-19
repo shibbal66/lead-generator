@@ -5,9 +5,10 @@ import { Trash2 } from "lucide-react";
 interface TrashBinProps {
   onClick: () => void;
   count?: number;
+  title?: string;
 }
 
-const TrashBin: React.FC<TrashBinProps> = ({ onClick, count = 0 }) => {
+const TrashBin: React.FC<TrashBinProps> = ({ onClick, count = 0, title }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: "trash"
   });
@@ -24,7 +25,7 @@ const TrashBin: React.FC<TrashBinProps> = ({ onClick, count = 0 }) => {
             : "bg-white border-gray-100 text-gray-400 hover:text-red-400 hover:border-red-200 hover:bg-gray-50"
         }
       `}
-      title="Papierkorb öffnen / Lead zum Löschen hierher ziehen"
+      title={title}
     >
       <Trash2 size={20} className={isOver ? "animate-bounce" : ""} />
       {count > 0 && (

@@ -1,5 +1,20 @@
 import { PipelineStage } from "./types";
 
+export const FORM_MAX_LENGTH = {
+  leadFirstName: 30,
+  leadLastName: 30,
+  leadPosition: 30,
+  leadCompany: 30,
+  leadEmail: 254,
+  leadPhone: 25,
+  leadUrl: 500,
+  projectTitle: 30,
+  projectDescription: 50,
+  userName: 30,
+  todoDescription: 50,
+  comment: 100
+} as const;
+
 export const STAGES: PipelineStage[] = [
   PipelineStage.IDENTIFIED,
   PipelineStage.CONTACTED,
@@ -7,15 +22,6 @@ export const STAGES: PipelineStage[] = [
   PipelineStage.NEGOTIATION,
   PipelineStage.CLOSED
 ];
-
-/** Used for translated stage labels; order matches STAGES */
-export const PIPELINE_STAGE_KEYS = [
-  "IDENTIFIED",
-  "CONTACTED",
-  "QUALIFIED",
-  "NEGOTIATION",
-  "CLOSED"
-] as const;
 
 export const STAGE_COLORS: Record<PipelineStage, string> = {
   [PipelineStage.IDENTIFIED]: "bg-gray-100 text-gray-700",

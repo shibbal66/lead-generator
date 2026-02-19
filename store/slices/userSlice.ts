@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-import { deleteUser, getUserById, getUsers, updateUser } from "../actions/userActions";
+import { deleteUser, getUserById, getUsers, updateUser, updateUserPassword } from "../actions/userActions";
 
 export type UserStatus = "ACTIVE" | "INACTIVE" | string;
 
@@ -29,11 +29,17 @@ export type UpdateUserBody = {
   role?: UserRole;
   status?: UserStatus;
   notificationEnabled?: boolean;
+  fcmToken?: string;
 };
 
 export type UpdateUserPayload = {
   userId: string;
   data: UpdateUserBody;
+};
+
+export type UpdateUserPasswordPayload = {
+  oldPassword: string;
+  newPassword: string;
 };
 
 type AsyncStatus = "idle" | "loading" | "succeeded" | "failed";
@@ -47,6 +53,7 @@ type UsersState = {
   listStatus: AsyncStatus;
   detailStatus: AsyncStatus;
   updateStatus: AsyncStatus;
+  updatePasswordStatus: AsyncStatus;
   deleteStatus: AsyncStatus;
   error: string | null;
   successMessage: string | null;
@@ -61,6 +68,7 @@ const initialState: UsersState = {
   listStatus: "idle",
   detailStatus: "idle",
   updateStatus: "idle",
+  updatePasswordStatus: "idle",
   deleteStatus: "idle",
   error: null,
   successMessage: null
@@ -122,6 +130,23 @@ const userSlice = createSlice({
       .addCase(updateUser.rejected, (state, action) => {
         state.updateStatus = "failed";
         state.error = (action.payload as string) || "Failed to update user";
+      })
+      .addCase(updateUserPassword.pending, (state) => {
+        state.updatePasswordStatus = "loading";
+        state.error = null;
+        state.successMessage = null;
+      })
+      .addCase(updateUserPassword.fulfilled, (state, action) => {
+        state.updatePasswordStatus = "succeeded";
+        state.successMessage = action.payload.message;
+        if (action.payload.user) {
+          state.selectedUser = action.payload.user;
+          state.users = state.users.map((user) => (user.id === action.payload.user!.id ? action.payload.user! : user));
+        }
+      })
+      .addCase(updateUserPassword.rejected, (state, action) => {
+        state.updatePasswordStatus = "failed";
+        state.error = (action.payload as string) || "Failed to update password";
       })
       .addCase(deleteUser.pending, (state) => {
         state.deleteStatus = "loading";

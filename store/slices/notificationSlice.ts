@@ -1,13 +1,13 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-import { startNotificationStream, stopNotificationStream } from "../actions/notificationActions";
+import { initializeFirebaseNotifications, stopFirebaseNotifications } from "../actions/notificationActions";
 
 export type NotificationEvent = {
   id: string;
   type: string;
   message: string;
   createdAt: string;
-  source: "local" | "sse";
+  source: "local" | "firebase";
 };
 
 type ConnectionStatus = "idle" | "connecting" | "connected" | "error";
@@ -51,18 +51,18 @@ const notificationSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(startNotificationStream.pending, (state) => {
+      .addCase(initializeFirebaseNotifications.pending, (state) => {
         state.connectionStatus = "connecting";
         state.error = null;
       })
-      .addCase(startNotificationStream.fulfilled, (state) => {
+      .addCase(initializeFirebaseNotifications.fulfilled, (state) => {
         state.connectionStatus = "connected";
       })
-      .addCase(startNotificationStream.rejected, (state, action) => {
+      .addCase(initializeFirebaseNotifications.rejected, (state, action) => {
         state.connectionStatus = "error";
-        state.error = (action.payload as string) || "Failed to subscribe notifications";
+        state.error = (action.payload as string) || "Failed to initialize notifications";
       })
-      .addCase(stopNotificationStream.fulfilled, (state) => {
+      .addCase(stopFirebaseNotifications.fulfilled, (state) => {
         state.connectionStatus = "idle";
       });
   }
@@ -72,4 +72,3 @@ export const { notificationReceived, pushLocalNotification, notificationConnecti
   notificationSlice.actions;
 
 export default notificationSlice.reducer;
-

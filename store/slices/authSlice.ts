@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import {
   bootstrapAuth,
   forgotPassword,
+  logout,
   resetPassword,
   signIn,
   signUp,
@@ -56,6 +57,11 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    updateAuthUserLocal: (state, action: { payload: Partial<AuthUser> }) => {
+      if (!state.user) return;
+      state.user = { ...state.user, ...action.payload };
+      saveAuthUser(state.user);
+    },
     signOutLocal: (state) => {
       state.user = null;
       state.isAuthenticated = false;
@@ -168,10 +174,42 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         clearAuthUser();
+      })
+      .addCase(logout.fulfilled, (state) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.error = null;
+        state.signInStatus = "idle";
+        state.signUpStatus = "idle";
+        state.verifyStatus = "idle";
+        state.forgotStatus = "idle";
+        state.resetStatus = "idle";
+        state.signUpMessage = null;
+        state.verifyMessage = null;
+        state.forgotMessage = null;
+        state.resetMessage = null;
+        clearAuthUser();
+        setManualSignOut();
+      })
+      .addCase(logout.rejected, (state) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.error = null;
+        state.signInStatus = "idle";
+        state.signUpStatus = "idle";
+        state.verifyStatus = "idle";
+        state.forgotStatus = "idle";
+        state.resetStatus = "idle";
+        state.signUpMessage = null;
+        state.verifyMessage = null;
+        state.forgotMessage = null;
+        state.resetMessage = null;
+        clearAuthUser();
+        setManualSignOut();
       });
   }
 });
 
-export const { signOutLocal, clearAuthMessages } = authSlice.actions;
+export const { signOutLocal, clearAuthMessages, updateAuthUserLocal } = authSlice.actions;
 
 export default authSlice.reducer;

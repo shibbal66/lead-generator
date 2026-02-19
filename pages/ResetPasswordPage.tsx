@@ -7,18 +7,16 @@ import AuthLayout from "../components/AuthLayout";
 import Toast from "../components/Toast";
 
 type ResetPasswordPageProps = {
-  emailFromUrl?: string;
-  codeFromUrl?: string;
+  idFromUrl?: string;
   isLoading?: boolean;
   errorMessage?: string | null;
   successMessage?: string | null;
-  onSubmit: (data: { email: string; code: string; newPassword: string }) => void;
+  onSubmit: (data: { id: string; newPassword: string }) => void;
   onBackToSignIn: () => void;
 };
 
 const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
-  emailFromUrl,
-  codeFromUrl,
+  idFromUrl,
   isLoading = false,
   errorMessage,
   successMessage,
@@ -34,7 +32,6 @@ const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
   const schema = useMemo(
     () =>
       Yup.object({
-        email: Yup.string().email("Please enter a valid email address.").required("Email is required."),
         newPassword: Yup.string()
           .min(8, "Password must be at least 8 characters.")
           .matches(/[A-Z]/, "Password must include at least one uppercase letter.")
@@ -49,40 +46,31 @@ const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
   );
 
   const formik = useFormik({
-    enableReinitialize: true,
     initialValues: {
-      email: emailFromUrl || "",
       newPassword: "",
       confirmPassword: ""
     },
     validationSchema: schema,
     onSubmit: (values) => {
-      if (!codeFromUrl) {
+      if (!idFromUrl || !idFromUrl.trim()) {
         setToastState({
           open: true,
           type: "error",
-          message: "Reset link is invalid or incomplete (missing code)."
+          message: "Reset link is invalid or incomplete (missing verification ID)."
         });
         return;
       }
-      console.log("[ResetPassword] submit", {
-        email: values.email,
-        codeLength: codeFromUrl.length,
-        passwordLength: values.newPassword.length
-      });
-      onSubmit({ email: values.email, code: codeFromUrl, newPassword: values.newPassword });
+      onSubmit({ id: idFromUrl.trim(), newPassword: values.newPassword });
     }
   });
 
   useEffect(() => {
     if (!errorMessage) return;
-    console.error("[ResetPassword] API error", errorMessage);
     setToastState({ open: true, type: "error", message: errorMessage });
   }, [errorMessage]);
 
   useEffect(() => {
     if (!successMessage) return;
-    console.log("[ResetPassword] success", successMessage);
     setToastState({ open: true, type: "success", message: successMessage });
   }, [successMessage]);
 
@@ -91,7 +79,6 @@ const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
     const entries = Object.entries(formik.errors);
     if (entries.length === 0) return;
     const firstError = String(entries[0][1]);
-    console.warn("[ResetPassword] validation errors", formik.errors);
     setToastState({ open: true, type: "error", message: firstError });
   }, [formik.errors, formik.submitCount]);
 
@@ -124,18 +111,6 @@ const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
           </div>
         ) : (
           <form onSubmit={formik.handleSubmit} className="space-y-4" noValidate>
-            <AuthInput
-              id="reset-password-email"
-              type="email"
-              label="Email"
-              placeholder="you@company.com"
-              value={formik.values.email}
-              onChange={(value) => formik.setFieldValue("email", value)}
-              onBlur={() => formik.setFieldTouched("email", true)}
-              error={formik.errors.email}
-              touched={formik.touched.email}
-            />
-
             <AuthInput
               id="reset-password-new"
               type="password"

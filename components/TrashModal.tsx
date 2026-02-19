@@ -1,17 +1,20 @@
-import React, { useMemo } from "react";
-import { X, Trash2, RotateCcw, User, Briefcase, Building } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { X, Trash2, RotateCcw, Briefcase, Building } from "lucide-react";
 import { Lead } from "../types";
 import { translations, Language } from "../translations";
+import ConfirmDeleteModal from "./ConfirmDeleteModal";
 
 interface TrashModalProps {
   leads: Lead[];
   lang: Language;
   onClose: () => void;
   onRestore: (id: string) => void;
+  onPermanentDelete: (id: string) => void;
 }
 
-const TrashModal: React.FC<TrashModalProps> = ({ leads, lang, onClose, onRestore }) => {
+const TrashModal: React.FC<TrashModalProps> = ({ leads, lang, onClose, onRestore, onPermanentDelete }) => {
   const t = useMemo(() => translations[lang], [lang]);
+  const [leadToPermanentDelete, setLeadToPermanentDelete] = useState<Lead | null>(null);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -72,12 +75,34 @@ const TrashModal: React.FC<TrashModalProps> = ({ leads, lang, onClose, onRestore
                   >
                     <RotateCcw size={16} />
                   </button>
+                  <button
+                    onClick={() => setLeadToPermanentDelete(lead)}
+                    className="p-2 bg-white text-red-600 hover:bg-red-50 rounded-xl border border-red-100 shadow-sm transition-all"
+                    title={t.trash.permanentDelete}
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
             ))
           )}
         </div>
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={leadToPermanentDelete !== null}
+        title={lang === "de" ? "Lead endgültig löschen?" : "Permanently delete lead?"}
+        description={t.trash.confirmPermanent}
+        confirmLabel={t.trash.permanentDelete}
+        cancelLabel={t.common.cancel}
+        onConfirm={() => {
+          if (leadToPermanentDelete) {
+            onPermanentDelete(leadToPermanentDelete.id);
+            setLeadToPermanentDelete(null);
+          }
+        }}
+        onCancel={() => setLeadToPermanentDelete(null)}
+      />
     </div>
   );
 };

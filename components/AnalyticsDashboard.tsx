@@ -255,7 +255,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           const counts: Record<string, { count: number; name: string }> = {};
           filteredDeals.forEach((deal) => {
             const lead = leads.find((l) => l.id === deal.leadId);
-            const leadName = lead ? `${lead.firstName} ${lead.lastName}` : "Unbekannt";
+            const leadName = lead ? `${lead.firstName} ${lead.lastName}` : t.analytics.unknownLead;
             if (!counts[deal.leadId]) counts[deal.leadId] = { count: 0, name: leadName };
             counts[deal.leadId].count += 1;
           });
@@ -350,9 +350,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         return {
           ID: d.id,
           Bezeichnung: d.name,
-          Lead: lead ? `${lead.firstName} ${lead.lastName}` : "Unbekannt",
+          Lead: lead ? `${lead.firstName} ${lead.lastName}` : t.analytics.unknownLead,
           Firma: lead?.company || "",
-          Projekt: project?.title || "Kein Projekt",
+          Projekt: project?.title || t.analytics.noProject,
           Owner: lead?.ownerName || "",
           Art: d.type,
           Summe: d.totalAmount,
@@ -369,10 +369,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     }
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Abschlüsse");
+    const sheetName = t.analytics.tabDeals.slice(0, 31);
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    const fileBase = lang === "de" ? "Abschluesse" : "Deals";
     XLSX.writeFile(
       workbook,
-      `Abschluesse_${start || "all"}_${end || "all"}.xlsx`
+      `${fileBase}_${start || "all"}_${end || "all"}.xlsx`
     );
   };
 
@@ -656,7 +658,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                         </div>
                         <span className="text-sm font-bold text-gray-700">{oc.name}</span>
                       </div>
-                      <span className="text-sm font-black text-blue-600">{oc.count} Leads</span>
+                      <span className="text-sm font-black text-blue-600">
+                        {oc.count} {t.analytics.leadsUnit}
+                      </span>
                     </div>
                     <div className="h-4 w-full bg-gray-50 rounded-full overflow-hidden border border-gray-100 p-0.5">
                       <div

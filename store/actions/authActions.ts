@@ -82,3 +82,11 @@ export const bootstrapAuth = createAsyncThunk("auth/bootstrapAuth", async (_, { 
     }
   }
 });
+
+export const logout = createAsyncThunk("auth/logout", async (_, { rejectWithValue }) => {
+  try {
+    await authApi.logout();
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : "Logout failed");
+  }
+});

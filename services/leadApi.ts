@@ -134,12 +134,41 @@ export const leadApi = {
     };
   },
 
-  deleteLead: async (leadId: string): Promise<{ leadId: string; message: string }> => {
+  /** Soft delete: move lead to trash. PATCH /lead/{leadID} with status DELETED */
+  softDeleteLead: async (leadId: string): Promise<{ leadId: string; message: string }> => {
+    const response = await request(`/lead/${leadId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "DELETED" })
+    });
+
+    return {
+      leadId,
+      message: response.message || "Lead moved to trash"
+    };
+  },
+
+  /** Restore a lead from trash. PATCH /lead/{leadID}/restore */
+  restoreLead: async (leadId: string): Promise<{ leadId: string; message: string }> => {
+    const response = await request(`/lead/${leadId}/restore`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+    });
+
+    return {
+      leadId,
+      message: response.message || "Lead restored"
+    };
+  },
+
+  /** Permanently delete a lead (e.g. from trash). DELETE /lead/{leadID} */
+  hardDeleteLead: async (leadId: string): Promise<{ leadId: string; message: string }> => {
     const response = await request(`/lead/${leadId}`, { method: "DELETE" });
 
     return {
       leadId,
-      message: response.message || "Lead deleted successfully"
+      message: response.message || "Lead permanently deleted"
     };
   }
 };

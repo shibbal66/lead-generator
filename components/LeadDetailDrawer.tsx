@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Lead, Comment, PipelineStage, LeadFile, Deal, DealType, Project, Todo } from "../types";
+import { Lead, Comment, PipelineStage, LeadFile, Deal, Project, Todo } from "../types";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import {
@@ -34,14 +34,12 @@ import {
   Circle,
   Clock
 } from "lucide-react";
-import { STAGE_COLORS, STAGES, PIPELINE_STAGE_KEYS } from "../constants";
+import { FORM_MAX_LENGTH, STAGE_COLORS, STAGES } from "../constants";
 import { api } from "../services/api";
 import { translations, Language } from "../translations";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import { useAppDispatch } from "../store/hooks";
 import { updateTask } from "../store/actions/taskActions";
-import { pushLocalNotification } from "../store/slices/notificationSlice";
-
 interface LeadDetailDrawerProps {
   lead: Lead | null;
   projects: Project[];
@@ -110,96 +108,168 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
     }
   };
 
+  const isValidFacebookUrl = (value?: string) => {
+    if (!value) return true;
+    try {
+      const url = new URL(value);
+      const host = url.hostname.toLowerCase();
+      return host === "facebook.com" || host === "www.facebook.com" || host === "fb.com" || host === "www.fb.com" || host.endsWith(".facebook.com");
+    } catch {
+      return false;
+    }
+  };
+
+  const isValidInstagramUrl = (value?: string) => {
+    if (!value) return true;
+    try {
+      const url = new URL(value);
+      const host = url.hostname.toLowerCase();
+      return host === "instagram.com" || host === "www.instagram.com" || host.endsWith(".instagram.com");
+    } catch {
+      return false;
+    }
+  };
+
+  const isValidTikTokUrl = (value?: string) => {
+    if (!value) return true;
+    try {
+      const url = new URL(value);
+      const host = url.hostname.toLowerCase();
+      return host === "tiktok.com" || host === "www.tiktok.com" || host.endsWith(".tiktok.com");
+    } catch {
+      return false;
+    }
+  };
+
+  const isValidTwitterUrl = (value?: string) => {
+    if (!value) return true;
+    try {
+      const url = new URL(value);
+      const host = url.hostname.toLowerCase();
+      return host === "twitter.com" || host === "www.twitter.com" || host === "x.com" || host === "www.x.com" || host.endsWith(".twitter.com") || host.endsWith(".x.com");
+    } catch {
+      return false;
+    }
+  };
+
+  const validatePhone = (value: string | undefined): boolean => {
+    const normalized = typeof value === "string" ? value.trim() : "";
+    if (!normalized) return true;
+    if (!/^\+?[\d\s\-()]+$/.test(normalized)) return false;
+    if (/^[\s\-()]+$/.test(normalized) || normalized === "+") return false;
+    const digitsOnly = normalized.replace(/\D/g, "");
+    return digitsOnly.length >= 5 && digitsOnly.length <= 15;
+  };
+
   const validationSchema = useMemo(
     () =>
       Yup.object({
         firstName: Yup.string()
           .trim()
           .required(lang === "de" ? "Vorname ist erforderlich" : "First name is required")
+          .max(FORM_MAX_LENGTH.leadFirstName, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadFirstName} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadFirstName} characters`)
           .matches(noDigitsPattern, lang === "de" ? "Vorname darf keine Zahlen enthalten" : "First name cannot contain numbers")
           .matches(lettersOnlyPattern, lang === "de" ? "Vorname enthält ungültige Zeichen" : "First name contains invalid characters"),
         lastName: Yup.string()
           .trim()
           .required(lang === "de" ? "Nachname ist erforderlich" : "Last name is required")
+          .max(FORM_MAX_LENGTH.leadLastName, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadLastName} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadLastName} characters`)
           .matches(noDigitsPattern, lang === "de" ? "Nachname darf keine Zahlen enthalten" : "Last name cannot contain numbers")
           .matches(lettersOnlyPattern, lang === "de" ? "Nachname enthält ungültige Zeichen" : "Last name contains invalid characters"),
         currentPosition: Yup.string()
           .trim()
           .required(lang === "de" ? "Position ist erforderlich" : "Position is required")
+          .max(FORM_MAX_LENGTH.leadPosition, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadPosition} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadPosition} characters`)
           .matches(noDigitsPattern, lang === "de" ? "Position darf keine Zahlen enthalten" : "Position cannot contain numbers")
           .matches(lettersOnlyPattern, lang === "de" ? "Position enthält ungültige Zeichen" : "Position contains invalid characters"),
         company: Yup.string()
           .trim()
+          .max(FORM_MAX_LENGTH.leadCompany, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadCompany} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadCompany} characters`)
           .test(
             "company-chars",
             lang === "de" ? "Firma darf nur Buchstaben, Zahlen und Leerzeichen enthalten" : "Company can only contain letters, numbers, and spaces",
             (value) => {
-            if (!value) return true;
-            return companyNamePattern.test(value);
+            const v = typeof value === "string" ? value.trim() : "";
+            if (!v || v === "Not found" || v === "Nicht gefunden") return true;
+            return companyNamePattern.test(v);
           }
           ),
         ownerName: Yup.string().trim().required(lang === "de" ? "Betreuer ist erforderlich" : "Owner is required"),
         email: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
+          .max(FORM_MAX_LENGTH.leadEmail, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadEmail} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadEmail} characters`)
           .test("email-or-empty", lang === "de" ? "Ungültige E-Mail-Adresse" : "Invalid email address", (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
-            if (!normalized) return true;
+            if (!normalized || normalized === "Not found" || normalized === "Nicht gefunden") return true;
             return Yup.string().email().isValidSync(normalized);
           }),
         phone: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
-          .test("phone-or-empty", lang === "de" ? "Ungültige Telefonnummer" : "Invalid phone number", (value) => {
+          .max(FORM_MAX_LENGTH.leadPhone, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadPhone} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadPhone} characters`)
+          .test("phone-valid", lang === "de" ? "Ungültige Telefonnummer (5–15 Ziffern)" : "Invalid phone (5–15 digits)", (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
-            if (!normalized) return true;
-            return /^\+?\d[\d\s]*$/.test(normalized);
+            if (!normalized || normalized === "Not found" || normalized === "Nicht gefunden") return true;
+            return validatePhone(value);
           }),
         linkedinUrl: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
-          .test("linkedin-domain", lang === "de" ? "LinkedIn URL erwartet" : "LinkedIn URL expected", (value) => {
+          .max(FORM_MAX_LENGTH.leadUrl, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`)
+          .test("linkedin-domain", t.leadDetail.errorUrlHttps, (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
             return Yup.string().url().isValidSync(normalized) && isValidLinkedInUrl(normalized);
           }),
         facebookUrl: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
-          .test("facebook-or-empty", lang === "de" ? "Ungültige URL" : "Invalid URL", (value) => {
+          .max(FORM_MAX_LENGTH.leadUrl, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`)
+          .test("facebook-domain", t.leadDetail.errorUrlHttps, (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
-            return Yup.string().url().isValidSync(normalized);
+            return Yup.string().url().isValidSync(normalized) && isValidFacebookUrl(normalized);
           }),
         instagramUrl: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
-          .test("instagram-or-empty", lang === "de" ? "Ungültige URL" : "Invalid URL", (value) => {
+          .max(FORM_MAX_LENGTH.leadUrl, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`)
+          .test("instagram-domain", t.leadDetail.errorUrlHttps, (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
-            return Yup.string().url().isValidSync(normalized);
+            return Yup.string().url().isValidSync(normalized) && isValidInstagramUrl(normalized);
           }),
         tiktokUrl: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
-          .test("tiktok-or-empty", lang === "de" ? "Ungültige URL" : "Invalid URL", (value) => {
+          .max(FORM_MAX_LENGTH.leadUrl, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`)
+          .test("tiktok-domain", t.leadDetail.errorUrlHttps, (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
-            return Yup.string().url().isValidSync(normalized);
+            return Yup.string().url().isValidSync(normalized) && isValidTikTokUrl(normalized);
           }),
         twitterUrl: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
-          .test("twitter-or-empty", lang === "de" ? "Ungültige URL" : "Invalid URL", (value) => {
+          .max(FORM_MAX_LENGTH.leadUrl, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`)
+          .test("twitter-domain", t.leadDetail.errorUrlHttps, (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
-            return Yup.string().url().isValidSync(normalized);
+            return Yup.string().url().isValidSync(normalized) && isValidTwitterUrl(normalized);
           })
       }),
-    [companyNamePattern, lang, lettersOnlyPattern, noDigitsPattern]
+    [companyNamePattern, lang, lettersOnlyPattern, noDigitsPattern, t]
   );
+
+  const notFoundPlaceholders = useMemo(() => new Set(["Not found", "Nicht gefunden"]), []);
+  const emptyIfNotFound = (value?: string) => {
+    if (!value) return "";
+    const t = value.trim();
+    return notFoundPlaceholders.has(t) ? "" : t;
+  };
 
   const formik = useFormik<Lead>({
     enableReinitialize: true,
     initialValues: {
       ...lead,
-      company: lead.company || "",
-      phone: lead.phone || "",
-      email: lead.email || "",
-      birthday: lead.birthday || "",
+      company: emptyIfNotFound(lead.company),
+      phone: emptyIfNotFound(lead.phone),
+      email: emptyIfNotFound(lead.email),
+      birthday: lead.birthday ? String(lead.birthday).slice(0, 10) : "",
       linkedinUrl: lead.linkedinUrl || "",
       facebookUrl: lead.facebookUrl || "",
       instagramUrl: lead.instagramUrl || "",
@@ -287,15 +357,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
       }
 
       console.log("[LeadDetailDrawer] update task success", result.payload.task);
-      if (nextCompleted) {
-        const taskName = targetTodo.text || (lang === "de" ? "Unbenannte Aufgabe" : "Untitled task");
-        dispatch(
-          pushLocalNotification({
-            type: "TASK_COMPLETED",
-            message: lang === "de" ? `Aufgabe erledigt: ${taskName}` : `Task completed: ${taskName}`
-          })
-        );
-      }
+      // Task completed notifications are shown only when received from Firebase (no local push).
     } catch (error) {
       console.error("[LeadDetailDrawer] update task failed", error);
       setLeadTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, isCompleted: targetTodo.isCompleted } : todo)));
@@ -382,9 +444,9 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
       <div className="absolute inset-0 bg-black/20 pointer-events-auto transition-opacity" onClick={onClose} />
       <div className="absolute inset-y-0 right-0 max-w-xl w-full bg-white shadow-2xl pointer-events-auto transform transition-transform duration-300">
         <div className="h-full flex flex-col">
-          <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">
+          <div className="p-6 border-b flex justify-between items-center bg-gray-50 gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl font-bold text-gray-900 line-clamp-2 break-words">
                 {lead.firstName} {lead.lastName}
               </h2>
               <div className="flex flex-col gap-1 mt-1">
@@ -404,6 +466,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
             </div>
             <div className="flex items-center space-x-3">
               <button
+                type="button"
                 onClick={() => {
                   if (isEditing) handleSave();
                   else setIsEditing(true);
@@ -413,6 +476,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                 {isEditing ? <Save size={20} /> : <Edit2 size={20} />}
               </button>
               <button
+                type="button"
                 onClick={onClose}
                 className="p-2 text-gray-500 hover:text-red-500 hover:bg-white rounded-lg transition-colors"
               >
@@ -433,9 +497,19 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   disabled={!isEditing}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold border-none cursor-pointer focus:ring-2 focus:ring-blue-500 disabled:cursor-default ${STAGE_COLORS[formik.values.pipelineStage]}`}
                 >
-                  {PIPELINE_STAGE_KEYS.map((key) => (
-                    <option key={key} value={PipelineStage[key as keyof typeof PipelineStage]}>
-                      {t.pipeline.stages[key]}
+                  {STAGES.map((s) => (
+                    <option key={s} value={s}>
+                      {s === PipelineStage.IDENTIFIED
+                        ? t.pipeline.stages.IDENTIFIED
+                        : s === PipelineStage.CONTACTED
+                          ? t.pipeline.stages.CONTACTED
+                          : s === PipelineStage.QUALIFIED
+                            ? t.pipeline.stages.QUALIFIED
+                            : s === PipelineStage.NEGOTIATION
+                              ? t.pipeline.stages.NEGOTIATION
+                              : s === PipelineStage.CLOSED
+                                ? t.pipeline.stages.CLOSED
+                                : s}
                     </option>
                   ))}
                 </select>
@@ -454,16 +528,17 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   {isEditing ? (
                     <input
                       name="firstName"
+                      maxLength={FORM_MAX_LENGTH.leadFirstName}
                       className="w-full text-sm font-medium border-gray-200 rounded-lg p-2"
                       value={formik.values.firstName}
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
                     />
                   ) : (
-                    <p className="text-gray-900 font-medium">{lead.firstName}</p>
+                    <p className="text-gray-900 font-medium line-clamp-2 break-words">{lead.firstName}</p>
                   )}
                   {isEditing && formik.touched.firstName && formik.errors.firstName && (
-                    <p className="text-[10px] text-red-500 mt-1">{formik.errors.firstName}</p>
+                    <p className="text-[10px] text-red-500 mt-1 line-clamp-2 break-words">{formik.errors.firstName}</p>
                   )}
                 </div>
                 <div>
@@ -473,16 +548,17 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   {isEditing ? (
                     <input
                       name="currentPosition"
+                      maxLength={FORM_MAX_LENGTH.leadPosition}
                       className="w-full text-sm font-medium border-gray-200 rounded-lg p-2"
                       value={formik.values.currentPosition}
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
                     />
                   ) : (
-                    <p className="text-gray-900 font-medium">{lead.currentPosition}</p>
+                    <p className="text-gray-900 font-medium line-clamp-2 break-words">{lead.currentPosition}</p>
                   )}
                   {isEditing && formik.touched.currentPosition && formik.errors.currentPosition && (
-                    <p className="text-[10px] text-red-500 mt-1">{formik.errors.currentPosition}</p>
+                    <p className="text-[10px] text-red-500 mt-1 line-clamp-2 break-words">{formik.errors.currentPosition}</p>
                   )}
                 </div>
                 <div>
@@ -492,16 +568,20 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   {isEditing ? (
                     <input
                       name="company"
+                      maxLength={FORM_MAX_LENGTH.leadCompany}
                       className="w-full text-sm font-medium border-gray-200 rounded-lg p-2"
                       value={formik.values.company || ""}
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
                     />
                   ) : (
-                    <p className="text-gray-900 font-medium">
-                      <Building size={14} className="inline mr-2" />
-                      {lead.company || t.leadDetail.notSpecified}
+                    <p className="text-gray-900 font-medium line-clamp-2 break-words">
+                      <Building size={14} className="inline mr-2 shrink-0" />
+                      {emptyIfNotFound(lead.company) || t.leadDetail.notSpecified}
                     </p>
+                  )}
+                  {isEditing && formik.touched.company && formik.errors.company && (
+                    <p className="text-[10px] text-red-500 mt-1 line-clamp-2 break-words">{formik.errors.company}</p>
                   )}
                 </div>
               </div>
@@ -513,16 +593,17 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   {isEditing ? (
                     <input
                       name="lastName"
+                      maxLength={FORM_MAX_LENGTH.leadLastName}
                       className="w-full text-sm font-medium border-gray-200 rounded-lg p-2"
                       value={formik.values.lastName}
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
                     />
                   ) : (
-                    <p className="text-gray-900 font-medium">{lead.lastName}</p>
+                    <p className="text-gray-900 font-medium line-clamp-2 break-words">{lead.lastName}</p>
                   )}
                   {isEditing && formik.touched.lastName && formik.errors.lastName && (
-                    <p className="text-[10px] text-red-500 mt-1">{formik.errors.lastName}</p>
+                    <p className="text-[10px] text-red-500 mt-1 line-clamp-2 break-words">{formik.errors.lastName}</p>
                   )}
                 </div>
                 <div>
@@ -538,7 +619,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                       onBlur={formik.handleBlur}
                     >
                       <option value="" disabled>
-                        {lang === "de" ? "Bitte wählen..." : "Please select..."}
+                        {t.leadModal.selectOwner}
                       </option>
                       {owners.map((owner) => (
                         <option key={owner.id} value={owner.name}>
@@ -547,10 +628,10 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                       ))}
                     </select>
                   ) : (
-                    <p className="text-gray-900 font-medium">{lead.ownerName}</p>
+                    <p className="text-gray-900 font-medium line-clamp-2 break-words">{lead.ownerName}</p>
                   )}
                   {isEditing && formik.touched.ownerName && formik.errors.ownerName && (
-                    <p className="text-[10px] text-red-500 mt-1">{formik.errors.ownerName}</p>
+                    <p className="text-[10px] text-red-500 mt-1 line-clamp-2 break-words">{formik.errors.ownerName}</p>
                   )}
                 </div>
                 <div>
@@ -559,11 +640,11 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   </label>
                   <div className="text-gray-900 font-medium flex items-start">
                     {projectDisplayItems.length > 0 ? (
-                      <div className="text-[13px] leading-5 space-y-1">
+                      <div className="text-[13px] leading-5 space-y-1 min-w-0 overflow-hidden">
                         {projectDisplayItems.map((projectTitle) => (
-                          <div key={projectTitle} className="flex items-center text-gray-700">
+                          <div key={projectTitle} className="flex items-center text-gray-700 min-w-0">
                             <FolderKanban size={13} className="mr-2 text-blue-500 shrink-0" />
-                            <span>{projectTitle}</span>
+                            <span className="truncate">{projectTitle}</span>
                           </div>
                         ))}
                       </div>
@@ -634,10 +715,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <p className="text-xs font-bold text-gray-900 truncate">{deal.name}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                            {(() => {
-                              const key = Object.entries(DealType).find(([, v]) => v === deal.type)?.[0] as keyof typeof t.dealTypes | undefined;
-                              return key ? t.dealTypes[key] : deal.type;
-                            })()}
+                            {deal.type}
                           </span>
                           <span className="text-[10px] text-gray-400 flex items-center">
                             <Calendar size={10} className="mr-1" />
@@ -686,11 +764,11 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                       type="date"
                       name="birthday"
                       className="flex-1 text-sm p-1"
-                      value={formik.values.birthday || ""}
+                      value={formik.values.birthday ? String(formik.values.birthday).slice(0, 10) : ""}
                       onChange={formik.handleChange}
                     />
                   ) : (
-                    <span className="text-gray-900 font-medium">
+                    <span className="text-gray-900 font-medium line-clamp-2 break-words">
                       {formatDateOrFallback(lead.birthday)}
                     </span>
                   )}
@@ -702,22 +780,23 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                     <input
                       type="email"
                       name="email"
+                      maxLength={FORM_MAX_LENGTH.leadEmail}
                       className="flex-1 text-sm p-1"
                       value={formik.values.email || ""}
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
                     />
                   ) : (
-                    <span className="text-gray-900 font-medium">{lead.email || t.leadDetail.notGiven}</span>
+                    <span className="text-gray-900 font-medium line-clamp-2 break-words">{emptyIfNotFound(lead.email) || t.leadDetail.notSpecified}</span>
                   )}
                   {isEditing && formik.touched.email && formik.errors.email && (
-                    <p className="text-[10px] text-red-500 ml-2">{formik.errors.email}</p>
+                    <p className="text-[10px] text-red-500 ml-2 line-clamp-2 break-words">{formik.errors.email}</p>
                   )}
                 </div>
 
                 <div className="pt-2 border-t border-gray-100 mt-2">
                   <label className="text-[10px] font-bold text-gray-400 uppercase mb-2 block">
-                    {t.leadDetail.socialMediaProfiles}
+                    {t.leadDetail.socialMediaProfile}
                   </label>
                   {isEditing ? (
                     <div className="space-y-2">
@@ -726,6 +805,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           <Linkedin size={18} className="text-blue-700" />
                           <input
                             name="linkedinUrl"
+                            maxLength={FORM_MAX_LENGTH.leadUrl}
                             className="flex-1 text-xs border rounded p-1"
                             value={formik.values.linkedinUrl || ""}
                             placeholder="LinkedIn URL"
@@ -734,7 +814,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           />
                         </div>
                         {formik.touched.linkedinUrl && formik.errors.linkedinUrl && (
-                          <p className="text-[10px] text-red-500 mt-1 ml-6">{formik.errors.linkedinUrl}</p>
+                          <p className="text-[10px] text-red-500 mt-1 ml-6 line-clamp-2 break-words">{formik.errors.linkedinUrl}</p>
                         )}
                       </div>
                       <div>
@@ -742,6 +822,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           <Facebook size={18} className="text-blue-600" />
                           <input
                             name="facebookUrl"
+                            maxLength={FORM_MAX_LENGTH.leadUrl}
                             className="flex-1 text-xs border rounded p-1"
                             value={formik.values.facebookUrl || ""}
                             placeholder="Facebook URL"
@@ -750,7 +831,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           />
                         </div>
                         {formik.touched.facebookUrl && formik.errors.facebookUrl && (
-                          <p className="text-[10px] text-red-500 mt-1 ml-6">{formik.errors.facebookUrl}</p>
+                          <p className="text-[10px] text-red-500 mt-1 ml-6 line-clamp-2 break-words">{formik.errors.facebookUrl}</p>
                         )}
                       </div>
                       <div>
@@ -758,6 +839,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           <Instagram size={18} className="text-pink-600" />
                           <input
                             name="instagramUrl"
+                            maxLength={FORM_MAX_LENGTH.leadUrl}
                             className="flex-1 text-xs border rounded p-1"
                             value={formik.values.instagramUrl || ""}
                             placeholder="Instagram URL"
@@ -766,7 +848,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           />
                         </div>
                         {formik.touched.instagramUrl && formik.errors.instagramUrl && (
-                          <p className="text-[10px] text-red-500 mt-1 ml-6">{formik.errors.instagramUrl}</p>
+                          <p className="text-[10px] text-red-500 mt-1 ml-6 line-clamp-2 break-words">{formik.errors.instagramUrl}</p>
                         )}
                       </div>
                       <div>
@@ -774,6 +856,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           <Music size={18} className="text-black" />
                           <input
                             name="tiktokUrl"
+                            maxLength={FORM_MAX_LENGTH.leadUrl}
                             className="flex-1 text-xs border rounded p-1"
                             value={formik.values.tiktokUrl || ""}
                             placeholder="TikTok URL"
@@ -782,7 +865,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           />
                         </div>
                         {formik.touched.tiktokUrl && formik.errors.tiktokUrl && (
-                          <p className="text-[10px] text-red-500 mt-1 ml-6">{formik.errors.tiktokUrl}</p>
+                          <p className="text-[10px] text-red-500 mt-1 ml-6 line-clamp-2 break-words">{formik.errors.tiktokUrl}</p>
                         )}
                       </div>
                       <div>
@@ -790,6 +873,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           <Twitter size={18} className="text-blue-400" />
                           <input
                             name="twitterUrl"
+                            maxLength={FORM_MAX_LENGTH.leadUrl}
                             className="flex-1 text-xs border rounded p-1"
                             value={formik.values.twitterUrl || ""}
                             placeholder="X URL"
@@ -798,7 +882,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           />
                         </div>
                         {formik.touched.twitterUrl && formik.errors.twitterUrl && (
-                          <p className="text-[10px] text-red-500 mt-1 ml-6">{formik.errors.twitterUrl}</p>
+                          <p className="text-[10px] text-red-500 mt-1 ml-6 line-clamp-2 break-words">{formik.errors.twitterUrl}</p>
                         )}
                       </div>
                     </div>
@@ -808,7 +892,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <Linkedin size={18} className={lead.linkedinUrl ? "text-blue-700" : "text-gray-300"} />
                         {lead.linkedinUrl && (
                           <a href={lead.linkedinUrl} target="_blank" className="text-xs text-blue-600 hover:underline">
-                            {t.leadDetail.profile}
+                            {t.leadDetail.profileLink}
                           </a>
                         )}
                       </div>
@@ -816,7 +900,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <Facebook size={18} className={lead.facebookUrl ? "text-blue-600" : "text-gray-300"} />
                         {lead.facebookUrl && (
                           <a href={lead.facebookUrl} target="_blank" className="text-xs text-blue-600 hover:underline">
-                            {t.leadDetail.profile}
+                            {t.leadDetail.profileLink}
                           </a>
                         )}
                       </div>
@@ -824,7 +908,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <Instagram size={18} className={lead.instagramUrl ? "text-pink-600" : "text-gray-300"} />
                         {lead.instagramUrl && (
                           <a href={lead.instagramUrl} target="_blank" className="text-xs text-blue-600 hover:underline">
-                            {t.leadDetail.profile}
+                            {t.leadDetail.profileLink}
                           </a>
                         )}
                       </div>
@@ -832,7 +916,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <Music size={18} className={lead.tiktokUrl ? "text-black" : "text-gray-300"} />
                         {lead.tiktokUrl && (
                           <a href={lead.tiktokUrl} target="_blank" className="text-xs text-blue-600 hover:underline">
-                            {t.leadDetail.profile}
+                            {t.leadDetail.profileLink}
                           </a>
                         )}
                       </div>
@@ -840,7 +924,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <Twitter size={18} className={lead.twitterUrl ? "text-blue-400" : "text-gray-300"} />
                         {lead.twitterUrl && (
                           <a href={lead.twitterUrl} target="_blank" className="text-xs text-blue-600 hover:underline">
-                            {t.leadDetail.profile}
+                            {t.leadDetail.profileLink}
                           </a>
                         )}
                       </div>
@@ -859,6 +943,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                 <div className="relative">
                   <textarea
                     value={commentText}
+                    maxLength={FORM_MAX_LENGTH.comment}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder={t.leadDetail.addCommentPlaceholder}
                     className="w-full border-gray-200 rounded-xl p-3 pr-12 text-sm focus:ring-2 focus:ring-blue-500 resize-none h-20 outline-none"
@@ -912,6 +997,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                       <div className="mt-2">
                         <textarea
                           className="w-full text-sm p-2 border rounded"
+                          maxLength={FORM_MAX_LENGTH.comment}
                           value={editingCommentText}
                           onChange={(e) => setEditingCommentText(e.target.value)}
                         />

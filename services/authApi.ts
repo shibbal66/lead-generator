@@ -119,8 +119,7 @@ export const authApi = {
         "Content-Type": "application/x-www-form-urlencoded"
       },
       body: toFormBody({
-        email: payload.email,
-        code: payload.code,
+        id: payload.id,
         newPassword: payload.newPassword
       })
     });
@@ -135,19 +134,7 @@ export const authApi = {
   },
 
   logout: async (): Promise<void> => {
-    const logoutPaths = ["/auth/logout", "/auth/signout"];
-    let lastError: unknown = null;
-
-    for (const path of logoutPaths) {
-      try {
-        await request(path, { method: "POST" });
-        return;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-
-    console.warn("[Auth] backend logout request failed", lastError);
+    await request("/auth/logout", { method: "POST" });
   },
 
   getMe: async (): Promise<AuthUser> => {

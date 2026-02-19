@@ -126,6 +126,7 @@ const SignUpRoute: React.FC = () => {
   useEffect(() => {
     if (!invitationId || hasTriggeredInvitationLookup.current) return;
     hasTriggeredInvitationLookup.current = true;
+    console.log("[SignUp Route] invitationId from URL", invitationId);
     dispatch(getInvitationById(invitationId));
   }, [dispatch, invitationId]);
 
@@ -164,10 +165,10 @@ const ForgotPasswordRoute: React.FC = () => {
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const email = searchParams.get("email") || "";
-  const code = searchParams.get("code") || "";
+  const resetId = searchParams.get("id") || "";
   const [lastForgotEmail, setLastForgotEmail] = useState("");
 
-  const hasResetParams = Boolean(email && code);
+  const hasResetParams = Boolean(resetId.trim());
 
   const { forgotStatus, forgotMessage, resetStatus, resetMessage, error } = useAppSelector((state) => state.auth);
 
@@ -178,10 +179,9 @@ const ForgotPasswordRoute: React.FC = () => {
   if (hasResetParams) {
     return (
       <ResetPasswordPage
-        emailFromUrl={email}
-        codeFromUrl={code}
+        idFromUrl={resetId}
         onSubmit={(data) => dispatch(resetPassword(data))}
-        onBackToSignIn={() => navigate(buildLoginPathWithEmail(email))}
+        onBackToSignIn={() => navigate("/login")}
         isLoading={resetStatus === "loading"}
         successMessage={resetStatus === "succeeded" ? resetMessage : null}
         errorMessage={error}
@@ -212,8 +212,7 @@ const ResetPasswordRoute: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
-  const email = searchParams.get("email") || "";
-  const code = searchParams.get("code") || "";
+  const id = searchParams.get("id") || "";
 
   const { resetStatus, resetMessage, error } = useAppSelector((state) => state.auth);
 
@@ -223,10 +222,9 @@ const ResetPasswordRoute: React.FC = () => {
 
   return (
     <ResetPasswordPage
-      emailFromUrl={email}
-      codeFromUrl={code}
+      idFromUrl={id}
       onSubmit={(data) => dispatch(resetPassword(data))}
-      onBackToSignIn={() => navigate(buildLoginPathWithEmail(email))}
+      onBackToSignIn={() => navigate("/login")}
       isLoading={resetStatus === "loading"}
       successMessage={resetStatus === "succeeded" ? resetMessage : null}
       errorMessage={error}

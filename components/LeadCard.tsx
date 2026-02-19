@@ -1,18 +1,16 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { Lead, PipelineStage } from "../types";
 import { User, Linkedin, MessageSquare, Briefcase, PlusCircle, DollarSign } from "lucide-react";
-import { translations, Language } from "../translations";
 
 interface LeadCardProps {
   lead: Lead;
   onClick: (lead: Lead) => void;
   onAddDeal?: (lead: Lead) => void;
-  lang: Language;
+  dealCaptureTitle?: string;
 }
 
-const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick, onAddDeal, lang }) => {
-  const t = useMemo(() => translations[lang], [lang]);
+const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick, onAddDeal, dealCaptureTitle }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: lead.id,
     data: { lead }
@@ -25,13 +23,11 @@ const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick, onAddDeal, lang }) =
     : undefined;
 
   const isClosed = lead.pipelineStage === PipelineStage.CLOSED;
-  const locale = lang === "de" ? "de-DE" : "en-US";
-  const notFoundText = lang === "de" ? "Nicht gefunden" : "Not found";
   const createdDate = (() => {
-    if (!lead.createdAt) return notFoundText;
+    if (!lead.createdAt) return "Not found";
     const parsed = new Date(lead.createdAt);
-    if (Number.isNaN(parsed.getTime())) return notFoundText;
-    return parsed.toLocaleDateString(locale);
+    if (Number.isNaN(parsed.getTime())) return "Not found";
+    return parsed.toLocaleDateString("de-DE");
   })();
   const commentCount = typeof lead.commentCount === "number" ? lead.commentCount : lead.comments.length;
 
@@ -59,7 +55,7 @@ const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick, onAddDeal, lang }) =
                 onAddDeal(lead);
               }}
               className="text-emerald-600 hover:text-emerald-800 transition-colors opacity-0 group-hover:opacity-100"
-              title={t.deal.addAnotherDeal}
+              title={dealCaptureTitle}
             >
               <PlusCircle size={14} />
             </button>
@@ -93,7 +89,7 @@ const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick, onAddDeal, lang }) =
       <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center text-[10px] text-gray-400">
         <div className="flex items-center">
           <MessageSquare size={10} className="mr-1" />
-          {commentCount} {t.common.comments}
+          {commentCount} Kommentare
         </div>
         <div className="flex items-center">
           {isClosed && <DollarSign size={10} className="text-emerald-500 mr-1" />}

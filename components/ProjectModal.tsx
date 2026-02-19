@@ -1,35 +1,68 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useFormik } from "formik";
 import { X, Save, FolderPlus, Search, Check, User } from "lucide-react";
 import * as Yup from "yup";
 import { Lead } from "../types";
-import { CreateProjectPayload } from "../store/slices/projectSlice";
+import { CreateProjectPayload, ProjectRecord } from "../store/slices/projectSlice";
+import { FORM_MAX_LENGTH } from "../constants";
 import { translations, Language } from "../translations";
+
+export type UpdateProjectData = { title: string; description?: string | null; projectManagerId: string };
+export type UpdateProjectLeadDiff = { leadIdsToAdd: string[]; leadIdsToRemove: string[] };
 
 interface ProjectModalProps {
   leads: Lead[];
   owners: Array<{ id: string; name: string; role?: string }>;
   onClose: () => void;
   onSave: (project: CreateProjectPayload) => void;
+  editingProject?: ProjectRecord | null;
+  onUpdate?: (projectId: string, data: UpdateProjectData, leadDiff?: UpdateProjectLeadDiff) => void;
   lang?: Language;
 }
 
-const ProjectModal: React.FC<ProjectModalProps> = ({ leads, owners, onClose, onSave, lang = "de" }) => {
+const ProjectModal: React.FC<ProjectModalProps> = ({
+  leads,
+  owners,
+  onClose,
+  onSave,
+  editingProject = null,
+  onUpdate,
+  lang = "de"
+}) => {
   const t = useMemo(() => translations[lang], [lang]);
+  const isEdit = Boolean(editingProject?.id);
 
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [leadSearch, setLeadSearch] = useState("");
+  const initialSelectedLeadIdsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    if (editingProject) {
+      const ids =
+        Array.isArray(editingProject.leadIds)
+          ? editingProject.leadIds
+          : leads.filter((l) => l.projectId === editingProject.id).map((l) => l.id);
+      setSelectedLeadIds(ids);
+      initialSelectedLeadIdsRef.current = ids;
+    } else {
+      setSelectedLeadIds([]);
+      initialSelectedLeadIdsRef.current = [];
+    }
+  }, [editingProject, leads]);
 
   const validationSchema = useMemo(
     () =>
       Yup.object({
         title: Yup.string()
           .trim()
-          .required(lang === "de" ? "Projekttitel ist erforderlich" : "Project title is required"),
+          .required(lang === "de" ? "Projekttitel ist erforderlich" : "Project title is required")
+          .max(FORM_MAX_LENGTH.projectTitle, lang === "de" ? `Max. ${FORM_MAX_LENGTH.projectTitle} Zeichen` : `Max. ${FORM_MAX_LENGTH.projectTitle} characters`),
         projectManagerId: Yup.string()
           .trim()
           .required(lang === "de" ? "Projektmanager ist erforderlich" : "Project manager is required"),
-        description: Yup.string().trim()
+        description: Yup.string()
+          .trim()
+          .max(FORM_MAX_LENGTH.projectDescription, lang === "de" ? `Max. ${FORM_MAX_LENGTH.projectDescription} Zeichen` : `Max. ${FORM_MAX_LENGTH.projectDescription} characters`)
       }),
     [lang]
   );
@@ -37,18 +70,33 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ leads, owners, onClose, onS
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      title: "",
-      description: "",
-      projectManagerId: owners[0]?.id || ""
+      title: editingProject?.title ?? "",
+      description: editingProject?.description ?? "",
+      projectManagerId: editingProject?.projectManagerId ?? owners[0]?.id ?? ""
     },
     validationSchema,
     onSubmit: (values) => {
-      onSave({
-        title: values.title.trim(),
-        description: values.description?.trim() || undefined,
-        projectManagerId: values.projectManagerId,
-        leadIds: selectedLeadIds
-      });
+      if (isEdit && editingProject && onUpdate) {
+        const initial = initialSelectedLeadIdsRef.current;
+        const leadIdsToAdd = selectedLeadIds.filter((id) => !initial.includes(id));
+        const leadIdsToRemove = initial.filter((id) => !selectedLeadIds.includes(id));
+        onUpdate(
+          editingProject.id,
+          {
+            title: values.title.trim(),
+            description: values.description?.trim() ? values.description.trim() : null,
+            projectManagerId: values.projectManagerId
+          },
+          { leadIdsToAdd, leadIdsToRemove }
+        );
+      } else {
+        onSave({
+          title: values.title.trim(),
+          description: values.description?.trim() || undefined,
+          projectManagerId: values.projectManagerId,
+          leadIds: selectedLeadIds
+        });
+      }
     }
   });
 
@@ -85,6 +133,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ leads, owners, onClose, onS
                 autoFocus
                 type="text"
                 name="title"
+                maxLength={FORM_MAX_LENGTH.projectTitle}
                 value={formik.values.title}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
@@ -133,12 +182,16 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ leads, owners, onClose, onS
               </label>
               <textarea
                 name="description"
+                maxLength={FORM_MAX_LENGTH.projectDescription}
                 value={formik.values.description}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
                 placeholder={t.myProjects.descPlaceholder}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm min-h-[80px] resize-none"
               />
+              {formik.touched.description && formik.errors.description && (
+                <p className="mt-1 text-xs text-red-500">{formik.errors.description}</p>
+              )}
             </div>
 
             <div>
@@ -198,7 +251,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ leads, owners, onClose, onS
             className="w-full mt-8 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all flex items-center justify-center"
           >
             <Save size={18} className="mr-2" />
-            {t.myProjects.saveBtn}
+            {isEdit ? t.myProjects.updateBtn : t.myProjects.saveBtn}
           </button>
         </form>
       </div>

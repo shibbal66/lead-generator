@@ -1,15 +1,18 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { FolderKanban, Users, Briefcase, Loader2, Calendar, User } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { FolderKanban, Users, Briefcase, Loader2, Calendar, User, Edit2, Trash2, X } from "lucide-react";
 import { translations, Language } from "../translations";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { getProjects } from "../store/actions/projectActions";
+import { getProjects, removeLeadFromProject } from "../store/actions/projectActions";
 import { getLeads } from "../store/actions/leadActions";
+import type { ProjectRecord } from "../store/slices/projectSlice";
 
 interface MyProjectsDashboardProps {
   lang: Language;
+  onEditProject?: (project: ProjectRecord) => void;
+  onDeleteProject?: (project: ProjectRecord) => void;
 }
 
-const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang }) => {
+const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang, onEditProject, onDeleteProject }) => {
   const dispatch = useAppDispatch();
   const projects = useAppSelector((state) => state.projects.projects);
   const projectsStatus = useAppSelector((state) => state.projects.listStatus);
@@ -19,6 +22,7 @@ const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang }) => {
   const leadsStatus = useAppSelector((state) => state.leads.listStatus);
   const [page, setPage] = useState(1);
   const limit = 10;
+  const [removingLeadId, setRemovingLeadId] = useState<string | null>(null);
 
   const t = useMemo(() => translations[lang], [lang]);
   const loading = projectsStatus === "loading" || leadsStatus === "loading";
@@ -32,6 +36,21 @@ const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang }) => {
   const getLeadsForProject = (projectId: string) => {
     return leads.filter((l) => l.projectId === projectId);
   };
+
+  const handleRemoveLeadFromProject = useCallback(
+    async (projectId: string, leadId: string) => {
+      setRemovingLeadId(leadId);
+      try {
+        const result = await dispatch(removeLeadFromProject({ projectId, leadId }));
+        if (removeLeadFromProject.fulfilled.match(result)) {
+          void dispatch(getLeads({ page: 1, limit: 500 }));
+        }
+      } finally {
+        setRemovingLeadId(null);
+      }
+    },
+    [dispatch]
+  );
 
   return (
     <div className="flex-1 flex flex-col p-8 bg-white/50 backdrop-blur-sm rounded-3xl m-4 shadow-inner overflow-hidden">
@@ -67,11 +86,33 @@ const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang }) => {
                     <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                       <Briefcase size={22} />
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                          <Calendar size={12} />
-                      {project.createdAt
-                        ? new Date(project.createdAt).toLocaleDateString(lang === "de" ? "de-DE" : "en-US")
-                        : "-"}
+                    <div className="flex items-center gap-2">
+                      {onEditProject && (
+                        <button
+                          type="button"
+                          onClick={() => onEditProject(project)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          title={lang === "de" ? "Projekt bearbeiten" : "Edit project"}
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                      )}
+                      {onDeleteProject && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteProject(project)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title={lang === "de" ? "Projekt löschen" : "Delete project"}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        <Calendar size={18} />
+                        {project.createdAt
+                          ? new Date(project.createdAt).toLocaleDateString(lang === "de" ? "de-DE" : "en-US")
+                          : "-"}
+                      </div>
                     </div>
                   </div>
 
@@ -101,20 +142,36 @@ const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang }) => {
                       {projectLeads.slice(0, 3).map((lead) => (
                         <div
                           key={lead.id}
-                          className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                          className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors gap-2"
                         >
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
                             <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[8px] font-bold shrink-0">
-                              {lead.firstName[0]}
-                              {lead.lastName[0]}
+                              {lead.firstName?.[0] ?? ""}
+                              {lead.lastName?.[0] ?? ""}
                             </div>
                             <span className="text-xs font-semibold text-gray-800 truncate">
                               {lead.firstName} {lead.lastName}
                             </span>
                           </div>
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 bg-white text-gray-400 rounded-md border border-gray-100">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 bg-white text-gray-400 rounded-md border border-gray-100 shrink-0">
                             {lead.status || "IDENTIFIED"}
                           </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveLeadFromProject(project.id, lead.id);
+                            }}
+                            disabled={removingLeadId === lead.id}
+                            className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 shrink-0"
+                            title={t.myProjects.removeLead}
+                          >
+                            {removingLeadId === lead.id ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <X size={14} />
+                            )}
+                          </button>
                         </div>
                       ))}
                       {projectLeads.length > 3 && (
@@ -132,7 +189,7 @@ const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang }) => {
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
         <p className="text-xs font-semibold text-gray-500">
-          {lang === "de" ? `Seite ${page} von ${totalPages}` : `Page ${page} of ${totalPages}`}
+          {t.common.pageLabel.replace("{page}", String(page)).replace("{total}", String(totalPages))}
         </p>
         <div className="flex items-center gap-2">
           <button
@@ -141,7 +198,7 @@ const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang }) => {
             disabled={page <= 1 || loading}
             className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 disabled:opacity-40"
           >
-            {lang === "de" ? "Zuruck" : "Previous"}
+            {t.common.previous}
           </button>
           <button
             type="button"
@@ -149,7 +206,7 @@ const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang }) => {
             disabled={page >= totalPages || loading}
             className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 disabled:opacity-40"
           >
-            {lang === "de" ? "Weiter" : "Next"}
+            {t.common.next}
           </button>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
 import { userApi } from "../../services/userApi";
-import { GetUsersParams, UpdateUserPayload } from "../slices/userSlice";
+import { GetUsersParams, UpdateUserPasswordPayload, UpdateUserPayload } from "../slices/userSlice";
 
 export const getUsers = createAsyncThunk("users/getUsers", async (params: GetUsersParams | undefined, { rejectWithValue }) => {
   try {
@@ -26,6 +26,17 @@ export const updateUser = createAsyncThunk("users/updateUser", async (payload: U
     return rejectWithValue(error instanceof Error ? error.message : "Failed to update user");
   }
 });
+
+export const updateUserPassword = createAsyncThunk(
+  "users/updateUserPassword",
+  async (payload: UpdateUserPasswordPayload, { rejectWithValue }) => {
+    try {
+      return await userApi.updateUserPassword(payload);
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : "Failed to update password");
+    }
+  }
+);
 
 export const deleteUser = createAsyncThunk("users/deleteUser", async (userId: string, { rejectWithValue }) => {
   try {

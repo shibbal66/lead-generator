@@ -1,5 +1,5 @@
 import { BACKEND_URL } from "../config/env";
-import { AppUser, GetUsersParams, UpdateUserPayload } from "../store/slices/userSlice";
+import { AppUser, GetUsersParams, UpdateUserPasswordPayload, UpdateUserPayload } from "../store/slices/userSlice";
 
 type UserApiResponse = {
   success?: boolean;
@@ -67,7 +67,7 @@ export const userApi = {
   },
 
   updateUser: async ({ userId, data }: UpdateUserPayload): Promise<{ user: AppUser; message: string }> => {
-    const paths = [`/user/${userId}`, "/user"];
+    const paths = ["/user", `/user/${userId}`];
     let lastError: unknown = null;
 
     for (const path of paths) {
@@ -94,6 +94,28 @@ export const userApi = {
     }
 
     throw lastError instanceof Error ? lastError : new Error("Failed to update user");
+  },
+
+  updateUserPassword: async ({
+    oldPassword,
+    newPassword
+  }: UpdateUserPasswordPayload): Promise<{ user?: AppUser; message: string }> => {
+    const body = new URLSearchParams();
+    body.set("oldPassword", oldPassword);
+    body.set("newPassword", newPassword);
+
+    const response = await request("/user", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: body.toString()
+    });
+
+    return {
+      user: response.user,
+      message: response.message || "Password updated successfully"
+    };
   },
 
   deleteUser: async (userId: string): Promise<{ message: string }> => {

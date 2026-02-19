@@ -99,25 +99,26 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
   });
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-        <div className="px-8 py-6 border-b flex justify-between items-center bg-emerald-50/50">
-          <div>
+      <div className="relative bg-white w-full max-w-lg max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col my-auto">
+        <div className="shrink-0 px-6 sm:px-8 py-4 sm:py-6 border-b flex justify-between items-center bg-emerald-50/50">
+          <div className="min-w-0 pr-2">
             <div className="flex items-center gap-2 mb-1">
-              <CheckCircle className="text-emerald-600" size={20} />
-              <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">{t.deal.modalTitle}</h2>
+              <CheckCircle className="text-emerald-600 shrink-0" size={20} />
+              <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight truncate">{t.deal.modalTitle}</h2>
             </div>
-            <p className="text-xs text-emerald-700 font-medium">
+            <p className="text-xs text-emerald-700 font-medium truncate">
               {lead.firstName} {lead.lastName} • {lead.company}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-xl transition-colors">
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-xl transition-colors shrink-0" type="button" aria-label="Close">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={formik.handleSubmit} className="p-8 space-y-6">
+        <form onSubmit={formik.handleSubmit} className="flex flex-col min-h-0 flex-1 overflow-y-auto">
+          <div className="p-6 sm:p-8 space-y-6">
           <p className="text-sm text-gray-500">{t.deal.modalSubtitle}</p>
 
           <div>
@@ -308,6 +309,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
             {t.deal.saveButton}
             <ChevronRight size={18} />
           </button>
+          </div>
         </form>
       </div>
     </div>
