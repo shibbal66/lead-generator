@@ -16,6 +16,7 @@ interface ProjectModalProps {
   onClose: () => void;
   onSave: (project: CreateProjectPayload) => void;
   editingProject?: ProjectRecord | null;
+  initialSelectedLeadIds?: string[] | null;
   onUpdate?: (projectId: string, data: UpdateProjectData, leadDiff?: UpdateProjectLeadDiff) => void;
   lang?: Language;
 }
@@ -26,6 +27,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   onClose,
   onSave,
   editingProject = null,
+  initialSelectedLeadIds = null,
   onUpdate,
   lang = "de"
 }) => {
@@ -39,7 +41,9 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   useEffect(() => {
     if (editingProject) {
       const ids =
-        Array.isArray(editingProject.leadIds)
+        Array.isArray(initialSelectedLeadIds)
+          ? initialSelectedLeadIds
+          : Array.isArray(editingProject.leadIds)
           ? editingProject.leadIds
           : leads.filter((l) => l.projectId === editingProject.id).map((l) => l.id);
       setSelectedLeadIds(ids);
@@ -48,7 +52,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
       setSelectedLeadIds([]);
       initialSelectedLeadIdsRef.current = [];
     }
-  }, [editingProject, leads]);
+  }, [editingProject, initialSelectedLeadIds, leads]);
 
   const validationSchema = useMemo(
     () =>

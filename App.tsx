@@ -76,6 +76,7 @@ import {
 } from "./store/actions/commentActions";
 import { initializeFirebaseNotifications, stopFirebaseNotifications } from "./store/actions/notificationActions";
 import { exportLeadsCsv } from "./store/actions/dashboardActions";
+import { leadApi } from "./services/leadApi";
 
 
 type ViewType =
@@ -105,6 +106,7 @@ const App: React.FC = () => {
   const [createLeadError, setCreateLeadError] = useState<string | null>(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState<ProjectRecord | null>(null);
+  const [editingProjectLeadIds, setEditingProjectLeadIds] = useState<string[] | null>(null);
   const [projectDeleteConfirm, setProjectDeleteConfirm] = useState<ProjectRecord | null>(null);
   const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
   const [toastState, setToastState] = useState<{ open: boolean; type: "success" | "error" | "info"; message: string }>({
@@ -220,6 +222,35 @@ const App: React.FC = () => {
   const fetchDeletedLeads = useCallback(async () => {
     await dispatch(getDeletedLeadsAction());
   }, [dispatch]);
+
+  const fetchLeadIdsForProject = useCallback(async (projectId: string) => {
+    const limit = 200;
+    let page = 1;
+    const ids: string[] = [];
+    const seen = new Set<string>();
+
+    while (true) {
+      const response = await leadApi.getLeads({ projectId, page, limit });
+      const batch = response.leads || [];
+      const beforeAddCount = ids.length;
+
+      for (const lead of batch) {
+        if (!seen.has(lead.id)) {
+          seen.add(lead.id);
+          ids.push(lead.id);
+        }
+      }
+
+      const didNotReceiveNewIds = ids.length === beforeAddCount;
+      const fetchedAllByTotal = ids.length >= (response.total || 0);
+      const reachedEnd = batch.length === 0;
+      if (fetchedAllByTotal || reachedEnd || didNotReceiveNewIds) break;
+
+      page += 1;
+    }
+
+    return ids;
+  }, []);
 
   useEffect(() => {
     if (hasBootstrappedRef.current) return;
@@ -629,6 +660,7 @@ const App: React.FC = () => {
         message: result.payload?.message ?? (currentLang === "de" ? "Projekt aktualisiert." : "Project updated.")
       });
       setProjectToEdit(null);
+      setEditingProjectLeadIds(null);
       setIsProjectModalOpen(false);
       void dispatch(getProjectsAction({ page: projectsPage, limit: projectsLimit }));
     } catch (error) {
@@ -1148,6 +1180,13 @@ const App: React.FC = () => {
           onEditProject={async (project) => {
             const result = await dispatch(getProjectByIdAction(project.id));
             if (getProjectByIdAction.fulfilled.match(result)) {
+              try {
+                const projectLeadIds = await fetchLeadIdsForProject(project.id);
+                setEditingProjectLeadIds(projectLeadIds);
+              } catch (error) {
+                console.error("[Project Edit] Failed to fetch leads with project filter", error);
+                setEditingProjectLeadIds(null);
+              }
               setProjectToEdit(result.payload);
               setIsProjectModalOpen(true);
             } else {
@@ -1356,7 +1395,8 @@ const App: React.FC = () => {
           type="button"
           onClick={() => {
             setProjectToEdit(null);
-              setIsProjectModalOpen(true);
+            setEditingProjectLeadIds(null);
+            setIsProjectModalOpen(true);
             setIsMobileSidebarOpen(false);
           }}
           className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm"
@@ -1504,6 +1544,7 @@ const App: React.FC = () => {
               <button
                 onClick={() => {
                   setProjectToEdit(null);
+                  setEditingProjectLeadIds(null);
                   setIsProjectModalOpen(true);
                 }}
                 className="bg-white text-gray-700 border border-gray-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all flex items-center shadow-sm"
@@ -1567,8 +1608,10 @@ const App: React.FC = () => {
             leads={leads}
             owners={users.map((u) => ({ id: u.id, name: u.name, role: u.role }))}
             lang={currentLang}
+            initialSelectedLeadIds={editingProjectLeadIds}
             onClose={() => {
               setProjectToEdit(null);
+              setEditingProjectLeadIds(null);
               setIsProjectModalOpen(false);
             }}
             onSave={handleCreateProject}
