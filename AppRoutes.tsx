@@ -76,7 +76,7 @@ const SignInRoute: React.FC = () => {
   return (
     <SignInPage
       onSubmit={(data) => dispatch(signIn(data))}
-      onSwitchToSignUp={() => navigate("/sign-up")}
+      onSwitchToSignUp={() => navigate("/signup")}
       onForgotPassword={() => navigate("/forgot-password")}
       isLoading={signInStatus === "loading" || (hasVerificationParams && verifyStatus === "loading")}
       errorMessage={error}
@@ -238,6 +238,7 @@ const AppRoutes: React.FC = () => {
       <Routes>
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<SignInRoute />} />
+          <Route path="/sign-up" element={<Navigate to="/signup" replace />} />
           <Route path="/signup" element={<SignUpRoute />} />
           <Route path="/forgot-password" element={<ForgotPasswordRoute />} />
           <Route path="/reset-password" element={<ResetPasswordRoute />} />
