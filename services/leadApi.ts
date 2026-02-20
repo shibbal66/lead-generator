@@ -35,7 +35,7 @@ const parseJsonSafe = async (response: Response): Promise<LeadApiResponse> => {
 };
 
 const apiRequest = async (path: string, init?: RequestInit): Promise<LeadApiResponse> => {
-  const res = await apiRequest(path, init);
+  const res = await request(path, init);
   const data = await parseJsonSafe(res);
   if (!res.ok) {
     throw new Error(data.message || "Lead request failed");
