@@ -6,6 +6,7 @@ import { translations, Language } from "../translations";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { getUserById, updateUser, updateUserPassword } from "../store/actions/userActions";
 import { updateAuthUserLocal } from "../store/slices/authSlice";
+import { getFCMToken } from "../services/fcm";
 import Toast from "./Toast";
 import ProfileSettingsModal from "./ProfileSettingsModal";
 
@@ -68,31 +69,76 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({ lang, onSettingsU
     if (!settings || !currentUserId) return;
     setSaving(true);
     const nextValue = !notificationsEnabledFromUser;
-    const action = await dispatch(
-      updateUser({
-        userId: currentUserId,
-        data: {
-          notificationEnabled: nextValue
-        }
-      })
-    );
-    if (updateUser.fulfilled.match(action)) {
-      setSettings((prev) => (prev ? { ...prev, pushNotificationsEnabled: nextValue } : prev));
-      setToastState({
-        open: true,
-        type: "success",
-        message:
-          lang === "de"
-            ? "Benachrichtigungseinstellungen aktualisiert."
-            : "Notification preferences updated."
-      });
-      onSettingsUpdate();
+
+    if (nextValue) {
+      const token = await getFCMToken();
+      if (!token) {
+        setToastState({
+          open: true,
+          type: "error",
+          message:
+            lang === "de"
+              ? "Push-Benachrichtigungen konnten nicht aktiviert werden. Erlauben Sie Benachrichtigungen und versuchen Sie es erneut."
+              : "Could not enable push notifications. Please allow notifications and try again."
+        });
+        setSaving(false);
+        return;
+      }
+      const action = await dispatch(
+        updateUser({
+          userId: currentUserId,
+          data: {
+            notificationEnabled: true,
+            fcmToken: token
+          }
+        })
+      );
+      if (updateUser.fulfilled.match(action)) {
+        setSettings((prev) => (prev ? { ...prev, pushNotificationsEnabled: true } : prev));
+        setToastState({
+          open: true,
+          type: "success",
+          message:
+            lang === "de"
+              ? "Benachrichtigungseinstellungen aktualisiert."
+              : "Notification preferences updated."
+        });
+        onSettingsUpdate();
+      } else {
+        setToastState({
+          open: true,
+          type: "error",
+          message: (action.payload as string) || (lang === "de" ? "Aktualisierung fehlgeschlagen." : "Update failed.")
+        });
+      }
     } else {
-      setToastState({
-        open: true,
-        type: "error",
-        message: (action.payload as string) || (lang === "de" ? "Aktualisierung fehlgeschlagen." : "Update failed.")
-      });
+      const action = await dispatch(
+        updateUser({
+          userId: currentUserId,
+          data: {
+            notificationEnabled: false,
+            fcmToken: ""
+          }
+        })
+      );
+      if (updateUser.fulfilled.match(action)) {
+        setSettings((prev) => (prev ? { ...prev, pushNotificationsEnabled: false } : prev));
+        setToastState({
+          open: true,
+          type: "success",
+          message:
+            lang === "de"
+              ? "Benachrichtigungseinstellungen aktualisiert."
+              : "Notification preferences updated."
+        });
+        onSettingsUpdate();
+      } else {
+        setToastState({
+          open: true,
+          type: "error",
+          message: (action.payload as string) || (lang === "de" ? "Aktualisierung fehlgeschlagen." : "Update failed.")
+        });
+      }
     }
     setSaving(false);
   };

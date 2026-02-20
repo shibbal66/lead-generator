@@ -79,6 +79,7 @@ import
 } from "./store/actions/commentActions";
 import { exportLeadsCsv } from "./store/actions/dashboardActions";
 import { leadApi } from "./services/leadApi";
+import { subscribeForegroundMessages } from "./services/fcm";
 
 
 type ViewType =
@@ -283,6 +284,26 @@ const App: React.FC = () =>
   {
     setLeads(leadRecords.map(mapLeadRecordToUi));
   }, [leadRecords, mapLeadRecordToUi]);
+
+  useEffect(() =>
+  {
+    if (!authUser) return;
+    let unsubscribe: (() => void) | undefined;
+    void subscribeForegroundMessages((payload) =>
+    {
+      const title = payload.notification?.title;
+      const body = payload.notification?.body;
+      const message = [title, body].filter(Boolean).join(" – ") || "New notification";
+      setToastState({ open: true, type: "info", message });
+    }).then((fn) =>
+    {
+      unsubscribe = fn;
+    });
+    return () =>
+    {
+      unsubscribe?.();
+    };
+  }, [authUser]);
 
   const buildUiLeadFromRecord = useCallback(
     (
