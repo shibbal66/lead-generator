@@ -165,7 +165,9 @@ const teamSlice = createSlice({
         state.cancelInvitationStatus = "succeeded";
         state.successMessage = action.payload.message;
         state.invitations = state.invitations.filter(
-          (invitation) => invitation.id !== action.payload.invitationId
+          (invitation) =>
+            invitation.id !== action.payload.invitationId &&
+            invitation.invitationId !== action.payload.invitationId
         );
       })
       .addCase(cancelTeamInvitation.rejected, (state, action) => {

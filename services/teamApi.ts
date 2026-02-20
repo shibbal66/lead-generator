@@ -10,6 +10,9 @@ import { request } from "./apiClient";
 type TeamApiResponse = {
   success?: boolean;
   message?: string;
+  id?: string;
+  invitationId?: string;
+  invitationID?: string;
   users?: TeamMember[];
   members?: TeamMember[];
   teamMembers?: TeamMember[];
@@ -67,7 +70,7 @@ export const teamApi = {
     if (typeof params.page === "number") query.set("page", String(params.page));
     if (typeof params.limit === "number") query.set("limit", String(params.limit));
 
-    const path = query.toString() ? `/user?${query.toString()}` : "/user";
+    const path = query.toString() ? `/team?${query.toString()}` : "/team";
     const response = await apiRequest(path, { method: "GET" });
     console.log("[Team API] members & invitations response", response);
     const data = response.data || {};
@@ -92,10 +95,11 @@ export const teamApi = {
         expiresOn?: string;
         invitedUserName?: string;
       };
+      const resolvedId = inv.id || inv.invitationId || inv.invitationID || inv._id || "";
       return {
         ...invitation,
-        id: inv.id || inv.invitationId || inv.invitationID || inv._id || "",
-        invitationId: inv.invitationId || inv.invitationID || inv.id || inv._id || "",
+        id: resolvedId,
+        invitationId: resolvedId,
         name: inv.name || inv.invitedUserName || undefined,
         expiresAt: inv.expiresAt || inv.invitationExpiresAt || inv.expiresOn || undefined
       };
@@ -165,7 +169,11 @@ export const teamApi = {
     console.log("[Team API] invitationId (resolved)", response.invitation?.id ?? response.invitationId ?? invitationId);
 
     if (response.invitation) {
-      return response.invitation;
+      return {
+        ...response.invitation,
+        id: response.invitation.id || response.invitation.invitationId || invitationId,
+        invitationId: response.invitation.invitationId || response.invitation.id || invitationId
+      };
     }
 
     return {

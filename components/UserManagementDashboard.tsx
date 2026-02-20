@@ -78,7 +78,7 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
     if (!value) return "-";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "-";
-    return date.toLocaleDateString(lang === "de" ? "de-DE" : "en-US");
+    return date.toLocaleString(lang === "de" ? "de-DE" : "en-US");
   };
 
   useEffect(() => {

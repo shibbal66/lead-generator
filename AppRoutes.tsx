@@ -19,6 +19,7 @@ import {
 import { getInvitationById } from "./store/actions/teamActions";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { clearAuthMessages } from "./store/slices/authSlice";
+import { clearInvitation } from "./store/slices/teamSlice";
 
 const buildLoginPathWithEmail = (email?: string) =>
   `/login${email ? `?email=${encodeURIComponent(email)}` : ""}`;
@@ -124,7 +125,13 @@ const SignUpRoute: React.FC = () => {
   }, [code, dispatch, email, hasVerificationParams]);
 
   useEffect(() => {
-    if (!invitationId || hasTriggeredInvitationLookup.current) return;
+    if (!invitationId) {
+      hasTriggeredInvitationLookup.current = false;
+      dispatch(clearInvitation());
+      return;
+    }
+    if (hasTriggeredInvitationLookup.current) return;
+    dispatch(clearInvitation());
     hasTriggeredInvitationLookup.current = true;
     console.log("[SignUp Route] invitationId from URL", invitationId);
     dispatch(getInvitationById(invitationId));
