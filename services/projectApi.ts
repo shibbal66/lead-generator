@@ -5,7 +5,7 @@ import {
   ProjectRecord,
   UpdateProjectPayload
 } from "../store/slices/projectSlice";
-import { BACKEND_URL } from "../config/env";
+import { request } from "./apiClient";
 
 type ProjectApiResponse = {
   success?: boolean;
@@ -25,29 +25,18 @@ const parseJsonSafe = async (response: Response): Promise<ProjectApiResponse> =>
   }
 };
 
-const request = async (path: string, init?: RequestInit): Promise<ProjectApiResponse> => {
-  let response: Response;
-  try {
-    response = await fetch(`${BACKEND_URL}${path}`, {
-      credentials: "include",
-      ...init
-    });
-  } catch {
-    throw new Error("Network/CORS error: unable to reach project service.");
-  }
-
-  const data = await parseJsonSafe(response);
-
-  if (!response.ok) {
+const apiRequest = async (path: string, init?: RequestInit): Promise<ProjectApiResponse> => {
+  const res = await request(path, init);
+  const data = await parseJsonSafe(res);
+  if (!res.ok) {
     throw new Error(data.message || "Project request failed");
   }
-
   return data;
 };
 
 export const projectApi = {
   createProject: async (payload: CreateProjectPayload): Promise<{ project: ProjectRecord; message: string }> => {
-    const response = await request("/project", {
+    const response = await apiRequest("/project", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -66,7 +55,7 @@ export const projectApi = {
   },
 
   updateProject: async ({ projectId, data }: UpdateProjectPayload): Promise<{ project: ProjectRecord; message: string }> => {
-    const response = await request(`/project/${projectId}`, {
+    const response = await apiRequest(`/project/${projectId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json"
@@ -91,7 +80,7 @@ export const projectApi = {
     if (typeof params?.limit === "number") query.set("limit", String(params.limit));
 
     const path = query.toString() ? `/project?${query.toString()}` : "/project";
-    const response = await request(path, { method: "GET" });
+    const response = await apiRequest(path, { method: "GET" });
 
     return {
       projects: response.projects || [],
@@ -102,7 +91,7 @@ export const projectApi = {
   },
 
   getProjectById: async (projectId: string): Promise<ProjectRecord> => {
-    const response = await request(`/project/${projectId}`, { method: "GET" });
+    const response = await apiRequest(`/project/${projectId}`, { method: "GET" });
 
     if (!response.project) {
       throw new Error("Project not found");
@@ -112,7 +101,7 @@ export const projectApi = {
   },
 
   addLeadsToProject: async ({ projectId, leadIds }: AddLeadsToProjectPayload): Promise<{ project: ProjectRecord; message: string }> => {
-    const response = await request(`/project/${projectId}/leads`, {
+    const response = await apiRequest(`/project/${projectId}/leads`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -131,7 +120,7 @@ export const projectApi = {
   },
 
   removeLeadFromProject: async (projectId: string, leadId: string): Promise<{ projectId: string; leadId: string; message: string }> => {
-    const response = await request(`/project/${projectId}/leads/${leadId}`, {
+    const response = await apiRequest(`/project/${projectId}/leads/${leadId}`, {
       method: "DELETE"
     });
 
@@ -143,7 +132,7 @@ export const projectApi = {
   },
 
   deleteProject: async (projectId: string): Promise<{ projectId: string; message: string }> => {
-    const response = await request(`/project/${projectId}`, {
+    const response = await apiRequest(`/project/${projectId}`, {
       method: "DELETE"
     });
 

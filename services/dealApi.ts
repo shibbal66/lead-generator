@@ -1,5 +1,5 @@
-import { BACKEND_URL } from "../config/env";
 import { CreateDealPayload, DealRecord, GetDealsParams } from "../store/slices/dealSlice";
+import { request } from "./apiClient";
 
 type DealApiResponse = {
   success?: boolean;
@@ -27,29 +27,18 @@ const toFormBody = (payload: Record<string, string | undefined>) => {
   return params;
 };
 
-const request = async (path: string, init?: RequestInit): Promise<DealApiResponse> => {
-  let response: Response;
-  try {
-    response = await fetch(`${BACKEND_URL}${path}`, {
-      credentials: "include",
-      ...init
-    });
-  } catch {
-    throw new Error("Network/CORS error: unable to reach deal service.");
-  }
-
-  const data = await parseJsonSafe(response);
-
-  if (!response.ok) {
+const apiRequest = async (path: string, init?: RequestInit): Promise<DealApiResponse> => {
+  const res = await request(path, init);
+  const data = await parseJsonSafe(res);
+  if (!res.ok) {
     throw new Error(data.message || "Deal request failed");
   }
-
   return data;
 };
 
 export const dealApi = {
   createDeal: async (payload: CreateDealPayload): Promise<{ deal: DealRecord; message: string }> => {
-    const response = await request("/deal", {
+    const response = await apiRequest("/deal", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
@@ -87,7 +76,7 @@ export const dealApi = {
     if (typeof params?.limit === "number") query.set("limit", String(params.limit));
 
     const path = query.toString() ? `/deal?${query.toString()}` : "/deal";
-    const response = await request(path, { method: "GET" });
+    const response = await apiRequest(path, { method: "GET" });
 
     return {
       deals: response.deals || [],

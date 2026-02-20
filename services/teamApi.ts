@@ -1,4 +1,3 @@
-import { BACKEND_URL } from "../config/env";
 import {
   DeleteTeamMemberPayload,
   GetTeamMembersParams,
@@ -6,6 +5,7 @@ import {
   TeamInvitation,
   TeamMember
 } from "../store/slices/teamSlice";
+import { request } from "./apiClient";
 
 type TeamApiResponse = {
   success?: boolean;
@@ -48,23 +48,12 @@ const parseJsonSafe = async (response: Response): Promise<TeamApiResponse> => {
   }
 };
 
-const request = async (path: string, init?: RequestInit): Promise<TeamApiResponse> => {
-  let response: Response;
-  try {
-    response = await fetch(`${BACKEND_URL}${path}`, {
-      credentials: "include",
-      ...init
-    });
-  } catch {
-    throw new Error("Network/CORS error: unable to reach team service.");
-  }
-
-  const data = await parseJsonSafe(response);
-
-  if (!response.ok) {
+const apiRequest = async (path: string, init?: RequestInit): Promise<TeamApiResponse> => {
+  const res = await request(path, init);
+  const data = await parseJsonSafe(res);
+  if (!res.ok) {
     throw new Error(data.message || "Team request failed");
   }
-
   return data;
 };
 
@@ -79,7 +68,7 @@ export const teamApi = {
     if (typeof params.limit === "number") query.set("limit", String(params.limit));
 
     const path = query.toString() ? `/user?${query.toString()}` : "/user";
-    const response = await request(path, { method: "GET" });
+    const response = await apiRequest(path, { method: "GET" });
     console.log("[Team API] members & invitations response", response);
     const data = response.data || {};
 
@@ -132,7 +121,7 @@ export const teamApi = {
       bodyString: body.toString()
     });
 
-    const response = await request("/team/invite", {
+    const response = await apiRequest("/team/invite", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
@@ -164,7 +153,7 @@ export const teamApi = {
     console.log("[Team API] GET invitation by ID — request", { invitationId, path });
     console.log("[Team API] invitationId", invitationId);
 
-    const response = await request(path, { method: "GET" });
+    const response = await apiRequest(path, { method: "GET" });
 
     console.log("[Team API] GET invitation by ID — response", {
       invitationId,
@@ -191,7 +180,7 @@ export const teamApi = {
 
   cancelInvitation: async (invitationId: string): Promise<{ invitationId: string; message: string }> => {
     console.log("[Team API] DELETE cancel invitation — request", { invitationId, path: `/team/invitation/${invitationId}` });
-    const response = await request(`/team/invitation/${invitationId}`, { method: "DELETE" });
+    const response = await apiRequest(`/team/invitation/${invitationId}`, { method: "DELETE" });
     console.log("[Team API] DELETE cancel invitation — response", { message: response.message, full: response });
     const responseInvitationId =
       (response as { invitationId?: string; invitationID?: string; id?: string }).invitationId ||
@@ -207,7 +196,7 @@ export const teamApi = {
 
   deleteTeamMember: async ({ userId }: DeleteTeamMemberPayload): Promise<{ userId: string; message: string }> => {
     console.log("[Team API] DELETE team member — request", { userId, path: `/user/${userId}` });
-    const response = await request(`/user/${userId}`, { method: "DELETE" });
+    const response = await apiRequest(`/user/${userId}`, { method: "DELETE" });
     console.log("[Team API] DELETE team member — response", { message: response.message, full: response });
 
     return {

@@ -1,4 +1,5 @@
 import { BACKEND_URL } from "../config/env";
+import { getAccessToken } from "../store/storage";
 
 type NotificationStreamHandlers = {
   onOpen?: () => void;
@@ -18,8 +19,10 @@ export const notificationApi = {
       };
     }
 
-    const url = `${BACKEND_URL}/notification/subscribe`;
-    notificationEventSource = new EventSource(url, { withCredentials: true });
+    const token = getAccessToken();
+    const baseUrl = `${BACKEND_URL}/notification/subscribe`;
+    const url = token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
+    notificationEventSource = new EventSource(url);
 
     notificationEventSource.onopen = () => {
       handlers.onOpen?.();

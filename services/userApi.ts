@@ -1,5 +1,5 @@
-import { BACKEND_URL } from "../config/env";
 import { AppUser, GetUsersParams, UpdateUserPasswordPayload, UpdateUserPayload } from "../store/slices/userSlice";
+import { request } from "./apiClient";
 
 type UserApiResponse = {
   success?: boolean;
@@ -19,23 +19,12 @@ const parseJsonSafe = async (response: Response): Promise<UserApiResponse> => {
   }
 };
 
-const request = async (path: string, init?: RequestInit): Promise<UserApiResponse> => {
-  let response: Response;
-  try {
-    response = await fetch(`${BACKEND_URL}${path}`, {
-      credentials: "include",
-      ...init
-    });
-  } catch {
-    throw new Error("Network/CORS error: unable to reach user service.");
-  }
-
+const apiRequest = async (path: string, init?: RequestInit): Promise<UserApiResponse> => {
+  const response = await request(path, init);
   const data = await parseJsonSafe(response);
-
   if (!response.ok) {
     throw new Error(data.message || "User request failed");
   }
-
   return data;
 };
 
@@ -46,7 +35,7 @@ export const userApi = {
     if (params?.limit) query.set("limit", String(params.limit));
 
     const path = query.toString() ? `/user?${query.toString()}` : "/user";
-    const data = await request(path, { method: "GET" });
+    const data = await apiRequest(path, { method: "GET" });
 
     return {
       users: data.users || [],
@@ -57,7 +46,7 @@ export const userApi = {
   },
 
   getUserById: async (userId: string): Promise<AppUser> => {
-    const data = await request(`/user/${userId}`, { method: "GET" });
+    const data = await apiRequest(`/user/${userId}`, { method: "GET" });
 
     if (!data.user) {
       throw new Error("User not found");
@@ -72,7 +61,7 @@ export const userApi = {
 
     for (const path of paths) {
       try {
-        const response = await request(path, {
+        const response = await apiRequest(path, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json"
@@ -104,7 +93,7 @@ export const userApi = {
     body.set("oldPassword", oldPassword);
     body.set("newPassword", newPassword);
 
-    const response = await request("/user", {
+    const response = await apiRequest("/user", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
@@ -119,7 +108,7 @@ export const userApi = {
   },
 
   deleteUser: async (userId: string): Promise<{ message: string }> => {
-    const data = await request(`/user/${userId}`, { method: "DELETE" });
+    const data = await apiRequest(`/user/${userId}`, { method: "DELETE" });
     return {
       message: data.message || "User deleted successfully"
     };

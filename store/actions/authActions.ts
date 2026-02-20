@@ -12,8 +12,7 @@ import {
 
 export const signIn = createAsyncThunk("auth/signIn", async (payload: SignInPayload, { rejectWithValue }) => {
   try {
-    await authApi.login(payload);
-    return await authApi.getMe();
+    return await authApi.login(payload);
   } catch (error) {
     return rejectWithValue(error instanceof Error ? error.message : "Sign in failed");
   }
@@ -75,8 +74,7 @@ export const bootstrapAuth = createAsyncThunk("auth/bootstrapAuth", async (_, { 
     return await authApi.getMe();
   } catch {
     try {
-      await authApi.refreshToken();
-      return await authApi.getMe();
+      return await authApi.refreshToken();
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Authentication check failed");
     }

@@ -11,6 +11,7 @@ import {
 import {
   clearAuthUser,
   clearManualSignOut,
+  clearTokens,
   loadAuthUser,
   saveAuthUser,
   setManualSignOut
@@ -76,6 +77,7 @@ const authSlice = createSlice({
       state.forgotMessage = null;
       state.resetMessage = null;
       clearAuthUser();
+      clearTokens();
       setManualSignOut();
     },
     clearAuthMessages: (state) => {
@@ -174,6 +176,7 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         clearAuthUser();
+        clearTokens();
       })
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
@@ -189,6 +192,7 @@ const authSlice = createSlice({
         state.forgotMessage = null;
         state.resetMessage = null;
         clearAuthUser();
+        clearTokens();
         setManualSignOut();
       })
       .addCase(logout.rejected, (state) => {
@@ -205,6 +209,7 @@ const authSlice = createSlice({
         state.forgotMessage = null;
         state.resetMessage = null;
         clearAuthUser();
+        clearTokens();
         setManualSignOut();
       });
   }

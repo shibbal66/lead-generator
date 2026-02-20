@@ -1,9 +1,9 @@
-import { BACKEND_URL } from "../config/env";
 import type {
   AnalyticsDealsData,
   AnalyticsPipelineData,
   DashboardAnalyticsParams
 } from "../types";
+import { request } from "./apiClient";
 
 type DealsApiResponse = { success?: boolean; message?: string; data?: AnalyticsDealsData };
 type PipelineApiResponse = { success?: boolean; message?: string; data?: AnalyticsPipelineData };
@@ -20,12 +20,7 @@ function buildQuery(params?: DashboardAnalyticsParams): string {
 }
 
 async function requestDeals(path: string): Promise<AnalyticsDealsData> {
-  let response: Response;
-  try {
-    response = await fetch(`${BACKEND_URL}${path}`, { credentials: "include" });
-  } catch {
-    throw new Error("Network/CORS error: unable to reach dashboard service.");
-  }
+  const response = await request(path);
   let data: DealsApiResponse = {};
   try {
     data = (await response.json()) as DealsApiResponse;
@@ -42,12 +37,7 @@ async function requestDeals(path: string): Promise<AnalyticsDealsData> {
 }
 
 async function requestPipeline(path: string): Promise<AnalyticsPipelineData> {
-  let response: Response;
-  try {
-    response = await fetch(`${BACKEND_URL}${path}`, { credentials: "include" });
-  } catch {
-    throw new Error("Network/CORS error: unable to reach dashboard service.");
-  }
+  const response = await request(path);
   let data: PipelineApiResponse = {};
   try {
     data = (await response.json()) as PipelineApiResponse;
@@ -76,33 +66,19 @@ export const dashboardApi = {
 
   exportLeadsCsv: async (params?: DashboardAnalyticsParams): Promise<string> => {
     const query = buildQuery(params);
-    let response: Response;
-    try {
-      response = await fetch(`${BACKEND_URL}/dashboard/export/leads${query}`, { credentials: "include" });
-    } catch {
-      throw new Error("Network/CORS error: unable to reach dashboard service.");
-    }
-
+    const response = await request(`/dashboard/export/leads${query}`);
     if (!response.ok) {
       throw new Error("Failed to export leads CSV.");
     }
-
     return response.text();
   },
 
   exportDealsCsv: async (params?: DashboardAnalyticsParams): Promise<string> => {
     const query = buildQuery(params);
-    let response: Response;
-    try {
-      response = await fetch(`${BACKEND_URL}/dashboard/export/deals${query}`, { credentials: "include" });
-    } catch {
-      throw new Error("Network/CORS error: unable to reach dashboard service.");
-    }
-
+    const response = await request(`/dashboard/export/deals${query}`);
     if (!response.ok) {
       throw new Error("Failed to export deals CSV.");
     }
-
     return response.text();
   }
 };

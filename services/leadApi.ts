@@ -1,4 +1,3 @@
-import { BACKEND_URL } from "../config/env";
 import {
   CreateLeadPayload,
   GetLeadsParams,
@@ -10,6 +9,7 @@ import {
   LeadTaskDetail,
   UpdateLeadPayload
 } from "../store/slices/leadSlice";
+import { request } from "./apiClient";
 
 type LeadApiResponse = {
   success?: boolean;
@@ -34,29 +34,18 @@ const parseJsonSafe = async (response: Response): Promise<LeadApiResponse> => {
   }
 };
 
-const request = async (path: string, init?: RequestInit): Promise<LeadApiResponse> => {
-  let response: Response;
-  try {
-    response = await fetch(`${BACKEND_URL}${path}`, {
-      credentials: "include",
-      ...init
-    });
-  } catch {
-    throw new Error("Network/CORS error: unable to reach lead service.");
-  }
-
-  const data = await parseJsonSafe(response);
-
-  if (!response.ok) {
+const apiRequest = async (path: string, init?: RequestInit): Promise<LeadApiResponse> => {
+  const res = await apiRequest(path, init);
+  const data = await parseJsonSafe(res);
+  if (!res.ok) {
     throw new Error(data.message || "Lead request failed");
   }
-
   return data;
 };
 
 export const leadApi = {
   createLead: async (payload: CreateLeadPayload): Promise<{ lead: LeadRecord; message: string }> => {
-    const response = await request("/lead", {
+    const response = await apiRequest("/lead", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -75,7 +64,7 @@ export const leadApi = {
   },
 
   updateLead: async ({ leadId, data }: UpdateLeadPayload): Promise<{ lead: LeadRecord; message: string }> => {
-    const response = await request(`/lead/${leadId}`, {
+    const response = await apiRequest(`/lead/${leadId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json"
@@ -107,7 +96,7 @@ export const leadApi = {
 
     const path = query.toString() ? `/lead?${query.toString()}` : "/lead";
     console.log("[leadApi] getLeads request", path);
-    const response = await request(path, { method: "GET" });
+    const response = await apiRequest(path, { method: "GET" });
 
     return {
       leads: response.leads || [],
@@ -118,7 +107,7 @@ export const leadApi = {
   },
 
   getLeadById: async (leadId: string): Promise<LeadDetailResponse> => {
-    const response = await request(`/lead/${leadId}`, { method: "GET" });
+    const response = await apiRequest(`/lead/${leadId}`, { method: "GET" });
 
     if (!response.lead) {
       throw new Error("Lead not found");
@@ -136,7 +125,7 @@ export const leadApi = {
 
   /** Soft delete: move lead to trash. PATCH /lead/{leadID} with status DELETED */
   softDeleteLead: async (leadId: string): Promise<{ leadId: string; message: string }> => {
-    const response = await request(`/lead/${leadId}`, {
+    const response = await apiRequest(`/lead/${leadId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "DELETED" })
@@ -150,7 +139,7 @@ export const leadApi = {
 
   /** Restore a lead from trash. PATCH /lead/{leadID}/restore */
   restoreLead: async (leadId: string): Promise<{ leadId: string; message: string }> => {
-    const response = await request(`/lead/${leadId}/restore`, {
+    const response = await apiRequest(`/lead/${leadId}/restore`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({})
@@ -164,7 +153,7 @@ export const leadApi = {
 
   /** Permanently delete a lead (e.g. from trash). DELETE /lead/{leadID} */
   hardDeleteLead: async (leadId: string): Promise<{ leadId: string; message: string }> => {
-    const response = await request(`/lead/${leadId}`, { method: "DELETE" });
+    const response = await apiRequest(`/lead/${leadId}`, { method: "DELETE" });
 
     return {
       leadId,

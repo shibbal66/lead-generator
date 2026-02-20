@@ -1,5 +1,5 @@
-import { BACKEND_URL } from "../config/env";
 import { CreateTaskPayload, GetTasksParams, TaskRecord, UpdateTaskPayload } from "../store/slices/taskSlice";
+import { request } from "./apiClient";
 
 type TaskApiResponse = {
   success?: boolean;
@@ -20,29 +20,18 @@ const parseJsonSafe = async (response: Response): Promise<TaskApiResponse> => {
   }
 };
 
-const request = async (path: string, init?: RequestInit): Promise<TaskApiResponse> => {
-  let response: Response;
-  try {
-    response = await fetch(`${BACKEND_URL}${path}`, {
-      credentials: "include",
-      ...init
-    });
-  } catch {
-    throw new Error("Network/CORS error: unable to reach task service.");
-  }
-
-  const data = await parseJsonSafe(response);
-
-  if (!response.ok) {
+const apiRequest = async (path: string, init?: RequestInit): Promise<TaskApiResponse> => {
+  const res = await request(path, init);
+  const data = await parseJsonSafe(res);
+  if (!res.ok) {
     throw new Error(data.message || "Task request failed");
   }
-
   return data;
 };
 
 export const taskApi = {
   createTask: async (payload: CreateTaskPayload): Promise<{ task: TaskRecord; message: string }> => {
-    const response = await request("/task", {
+    const response = await apiRequest("/task", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -69,7 +58,7 @@ export const taskApi = {
     if (typeof params?.limit === "number") query.set("limit", String(params.limit));
 
     const path = query.toString() ? `/task?${query.toString()}` : "/task";
-    const response = await request(path, { method: "GET" });
+    const response = await apiRequest(path, { method: "GET" });
     const raw = response.tasks as TaskWithLeadItem[] | TaskRecord[] | undefined;
     const tasks: TaskRecord[] = Array.isArray(raw)
       ? raw.map((item: TaskWithLeadItem | TaskRecord) =>
@@ -86,7 +75,7 @@ export const taskApi = {
   },
 
   updateTask: async ({ taskId, data }: UpdateTaskPayload): Promise<{ task: TaskRecord; message: string }> => {
-    const response = await request(`/task/${taskId}`, {
+    const response = await apiRequest(`/task/${taskId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json"

@@ -1,4 +1,3 @@
-import { BACKEND_URL } from "../config/env";
 import {
   CommentRecord,
   CreateCommentPayload,
@@ -6,6 +5,7 @@ import {
   GetCommentsParams,
   UpdateCommentPayload
 } from "../store/slices/commentSlice";
+import { request } from "./apiClient";
 
 type CommentApiResponse = {
   success?: boolean;
@@ -33,29 +33,18 @@ const toFormBody = (payload: Record<string, string | undefined>) => {
   return params;
 };
 
-const request = async (path: string, init?: RequestInit): Promise<CommentApiResponse> => {
-  let response: Response;
-  try {
-    response = await fetch(`${BACKEND_URL}${path}`, {
-      credentials: "include",
-      ...init
-    });
-  } catch {
-    throw new Error("Network/CORS error: unable to reach comment service.");
-  }
-
-  const data = await parseJsonSafe(response);
-
-  if (!response.ok) {
+const apiRequest = async (path: string, init?: RequestInit): Promise<CommentApiResponse> => {
+  const res = await request(path, init);
+  const data = await parseJsonSafe(res);
+  if (!res.ok) {
     throw new Error(data.message || "Comment request failed");
   }
-
   return data;
 };
 
 export const commentApi = {
   createComment: async (payload: CreateCommentPayload): Promise<{ comment: CommentRecord; message: string }> => {
-    const response = await request("/comment", {
+    const response = await apiRequest("/comment", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
@@ -85,7 +74,7 @@ export const commentApi = {
     if (typeof params.limit === "number") query.set("limit", String(params.limit));
 
     const path = query.toString() ? `/comment?${query.toString()}` : "/comment";
-    const response = await request(path, { method: "GET" });
+    const response = await apiRequest(path, { method: "GET" });
 
     return {
       comments: response.comments || [],
@@ -96,7 +85,7 @@ export const commentApi = {
   },
 
   updateComment: async (payload: UpdateCommentPayload): Promise<{ comment: CommentRecord; message: string }> => {
-    const response = await request(`/comment/${payload.commentId}`, {
+    const response = await apiRequest(`/comment/${payload.commentId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
@@ -117,7 +106,7 @@ export const commentApi = {
   },
 
   deleteComment: async (payload: DeleteCommentPayload): Promise<{ commentId: string; message: string }> => {
-    const response = await request(`/comment/${payload.commentId}`, {
+    const response = await apiRequest(`/comment/${payload.commentId}`, {
       method: "DELETE"
     });
 
