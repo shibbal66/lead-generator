@@ -5,7 +5,7 @@ import {
   TeamInvitation,
   TeamMember
 } from "../store/slices/teamSlice";
-import { request } from "./apiClient";
+import { request, requestPublic } from "./apiClient";
 
 type TeamApiResponse = {
   success?: boolean;
@@ -153,11 +153,19 @@ export const teamApi = {
   },
 
   getInvitationById: async (invitationId: string): Promise<TeamInvitation> => {
-    const path = `/team/invitation/${invitationId}`;
-    console.log("[Team API] GET invitation by ID — request", { invitationId, path });
-    console.log("[Team API] invitationId", invitationId);
+    const path = `/team/invitation/${encodeURIComponent(invitationId)}`;
+    console.log("[Team API] GET invitation by ID — public request (no auth)", { invitationId, path });
 
-    const response = await apiRequest(path, { method: "GET" });
+    const res = await requestPublic(path, { method: "GET" });
+    const response = await parseJsonSafe(res);
+    if (!res.ok) {
+      const rawMessage = (response as { message?: string }).message || "";
+      const isAuthError = res.status === 401 || /not authenticated/i.test(rawMessage);
+      const message = isAuthError
+        ? "Invitation link could not be loaded. Please check the link or request a new invitation."
+        : rawMessage || "Invitation is invalid or expired.";
+      throw new Error(message);
+    }
 
     console.log("[Team API] GET invitation by ID — response", {
       invitationId,

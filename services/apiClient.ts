@@ -2,10 +2,19 @@ import { BACKEND_URL } from "../config/env";
 import { getAccessToken } from "../store/storage";
 import { authApi } from "./authApi";
 
-/**
- * Authenticated request: adds Authorization Bearer token, on 401 tries refresh once and retries.
- * Returns the Response; caller is responsible for parsing JSON and checking response.ok.
- */
+
+export async function requestPublic(path: string, init?: RequestInit): Promise<Response> {
+  const url = `${BACKEND_URL}${path}`;
+  return fetch(url, {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      ...init?.headers
+    }
+  });
+}
+
+
 export async function request(path: string, init?: RequestInit): Promise<Response> {
   const token = getAccessToken();
   if (!token) {
