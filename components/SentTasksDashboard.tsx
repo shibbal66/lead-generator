@@ -4,7 +4,6 @@ import { Task, Owner } from "../types";
 import { api } from "../services/api";
 import { translations, Language } from "../translations";
 
-// Define props to accept lang from App.tsx
 interface SentTasksDashboardProps {
   lang: Language;
 }
@@ -14,7 +13,6 @@ const SentTasksDashboard: React.FC<SentTasksDashboardProps> = ({ lang }) => {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Use translations based on the provided lang prop
   const t = useMemo(() => translations[lang], [lang]);
 
   useEffect(() => {
@@ -23,7 +21,6 @@ const SentTasksDashboard: React.FC<SentTasksDashboardProps> = ({ lang }) => {
 
   const fetchData = async () => {
     const [tasks, ownersData] = await Promise.all([api.getTasks(), api.getOwners()]);
-    // Filter tasks sent by "M. Nutzer" (Mock current user)
     const filtered = tasks
       .filter((t) => t.senderName === "M. Nutzer")
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

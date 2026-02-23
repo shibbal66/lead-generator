@@ -95,7 +95,6 @@ export const leadApi = {
     if (typeof params?.limit === "number") query.set("limit", String(params.limit));
 
     const path = query.toString() ? `/lead?${query.toString()}` : "/lead";
-    console.log("[leadApi] getLeads request", path);
     const response = await apiRequest(path, { method: "GET" });
 
     return {

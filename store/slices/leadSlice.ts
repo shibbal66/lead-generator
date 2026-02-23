@@ -209,8 +209,6 @@ const leadSlice = createSlice({
       .addCase(createLead.fulfilled, (state, action) => {
         state.createStatus = "succeeded";
         state.successMessage = action.payload.message;
-        state.leads = [action.payload.lead, ...state.leads];
-        state.total += 1;
       })
       .addCase(createLead.rejected, (state, action) => {
         state.createStatus = "failed";

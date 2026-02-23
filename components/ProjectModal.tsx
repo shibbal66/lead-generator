@@ -126,14 +126,13 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={formik.handleSubmit} className="p-8">
+        <form onSubmit={formik.handleSubmit} className="p-8" noValidate>
           <div className="space-y-6">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">
                 {lang === "de" ? "Projekttitel *" : "Project Title *"}
               </label>
               <input
-                required
                 autoFocus
                 type="text"
                 name="title"
@@ -158,7 +157,6 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                   <User size={16} />
                 </div>
                 <select
-                  required
                   name="projectManagerId"
                   value={formik.values.projectManagerId}
                   onChange={formik.handleChange}

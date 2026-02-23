@@ -12,7 +12,6 @@ interface LeadModalProps {
   onSave: (lead: Partial<Lead>) => void;
   owners: Array<{ id: string; name: string }>;
   lang: Language;
-  /** API validation error to show in the form instead of a toast */
   apiError?: string | null;
 }
 
@@ -52,36 +51,64 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
         firstName: Yup.string()
           .trim()
           .required(isDe ? "Vorname ist erforderlich" : "First name is required")
-          .max(FORM_MAX_LENGTH.leadFirstName, isDe ? `Max. ${FORM_MAX_LENGTH.leadFirstName} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadFirstName} characters`)
+          .max(
+            FORM_MAX_LENGTH.leadFirstName,
+            isDe ? `Max. ${FORM_MAX_LENGTH.leadFirstName} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadFirstName} characters`
+          )
           .matches(noDigitsPattern, isDe ? "Vorname darf keine Zahlen enthalten" : "First name cannot contain numbers")
-          .matches(lettersOnlyPattern, isDe ? "Vorname enthält ungültige Zeichen" : "First name contains invalid characters"),
+          .matches(
+            lettersOnlyPattern,
+            isDe ? "Vorname enthält ungültige Zeichen" : "First name contains invalid characters"
+          ),
         lastName: Yup.string()
           .trim()
           .required(isDe ? "Nachname ist erforderlich" : "Last name is required")
-          .max(FORM_MAX_LENGTH.leadLastName, isDe ? `Max. ${FORM_MAX_LENGTH.leadLastName} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadLastName} characters`)
+          .max(
+            FORM_MAX_LENGTH.leadLastName,
+            isDe ? `Max. ${FORM_MAX_LENGTH.leadLastName} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadLastName} characters`
+          )
           .matches(noDigitsPattern, isDe ? "Nachname darf keine Zahlen enthalten" : "Last name cannot contain numbers")
-          .matches(lettersOnlyPattern, isDe ? "Nachname enthält ungültige Zeichen" : "Last name contains invalid characters"),
+          .matches(
+            lettersOnlyPattern,
+            isDe ? "Nachname enthält ungültige Zeichen" : "Last name contains invalid characters"
+          ),
         currentPosition: Yup.string()
           .trim()
           .required(isDe ? "Position ist erforderlich" : "Position is required")
-          .max(FORM_MAX_LENGTH.leadPosition, isDe ? `Max. ${FORM_MAX_LENGTH.leadPosition} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadPosition} characters`)
+          .max(
+            FORM_MAX_LENGTH.leadPosition,
+            isDe ? `Max. ${FORM_MAX_LENGTH.leadPosition} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadPosition} characters`
+          )
           .matches(noDigitsPattern, isDe ? "Position darf keine Zahlen enthalten" : "Position cannot contain numbers")
-          .matches(lettersOnlyPattern, isDe ? "Position enthält ungültige Zeichen" : "Position contains invalid characters"),
+          .matches(
+            lettersOnlyPattern,
+            isDe ? "Position enthält ungültige Zeichen" : "Position contains invalid characters"
+          ),
         company: Yup.string()
           .trim()
-          .max(FORM_MAX_LENGTH.leadCompany, isDe ? `Max. ${FORM_MAX_LENGTH.leadCompany} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadCompany} characters`)
+          .max(
+            FORM_MAX_LENGTH.leadCompany,
+            isDe ? `Max. ${FORM_MAX_LENGTH.leadCompany} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadCompany} characters`
+          )
           .test(
             "company-chars",
-            isDe ? "Firma darf nur Buchstaben, Zahlen und Leerzeichen enthalten" : "Company can only contain letters, numbers, and spaces",
+            isDe
+              ? "Firma darf nur Buchstaben, Zahlen und Leerzeichen enthalten"
+              : "Company can only contain letters, numbers, and spaces",
             (value) => {
-            if (!value) return true;
-            return companyNamePattern.test(value);
-          }
+              if (!value) return true;
+              return companyNamePattern.test(value);
+            }
           ),
-        ownerName: Yup.string().trim().required(isDe ? "Betreuer ist erforderlich" : "Owner is required"),
+        ownerName: Yup.string()
+          .trim()
+          .required(isDe ? "Betreuer ist erforderlich" : "Owner is required"),
         email: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
-          .max(FORM_MAX_LENGTH.leadEmail, isDe ? `Max. ${FORM_MAX_LENGTH.leadEmail} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadEmail} characters`)
+          .max(
+            FORM_MAX_LENGTH.leadEmail,
+            isDe ? `Max. ${FORM_MAX_LENGTH.leadEmail} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadEmail} characters`
+          )
           .test("email-format", isDe ? "Ungültige E-Mail-Adresse" : "Email must be a valid email address", (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
@@ -89,11 +116,23 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
           }),
         phone: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
-          .max(FORM_MAX_LENGTH.leadPhone, isDe ? `Max. ${FORM_MAX_LENGTH.leadPhone} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadPhone} characters`)
-          .test("phone-valid", isDe ? "Ungültige Telefonnummer (5–15 Ziffern, nur + - ( ) und Leerzeichen)" : "Invalid phone (5–15 digits; only +, spaces, dashes, parentheses)", (value) => validatePhone(value)),
+          .max(
+            FORM_MAX_LENGTH.leadPhone,
+            isDe ? `Max. ${FORM_MAX_LENGTH.leadPhone} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadPhone} characters`
+          )
+          .test(
+            "phone-valid",
+            isDe
+              ? "Ungültige Telefonnummer (5–15 Ziffern, nur + - ( ) und Leerzeichen)"
+              : "Invalid phone (5–15 digits; only +, spaces, dashes, parentheses)",
+            (value) => validatePhone(value)
+          ),
         linkedinUrl: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
-          .max(FORM_MAX_LENGTH.leadUrl, isDe ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`)
+          .max(
+            FORM_MAX_LENGTH.leadUrl,
+            isDe ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`
+          )
           .test("valid-linkedin-url", isDe ? "Ungültige LinkedIn URL" : "Invalid LinkedIn URL", (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
@@ -129,7 +168,10 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
   useEffect(() => {
     if (!apiError || !formik.setFieldError) return;
     const msg = apiError.trim();
-    const parts = msg.split(',').map((p) => p.trim()).filter(Boolean);
+    const parts = msg
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
     let mapped = false;
     for (const part of parts) {
       if (/company/i.test(part)) {
@@ -149,7 +191,11 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
   }, [apiError]);
 
   const handleEnrich = async () => {
-    if (!formik.values.linkedinUrl || !Yup.string().url().isValidSync(formik.values.linkedinUrl) || !formik.values.linkedinUrl.includes("linkedin.com")) {
+    if (
+      !formik.values.linkedinUrl ||
+      !Yup.string().url().isValidSync(formik.values.linkedinUrl) ||
+      !formik.values.linkedinUrl.includes("linkedin.com")
+    ) {
       setEnrichmentError(
         lang === "de" ? "Bitte geben Sie eine gültige LinkedIn URL ein." : "Please enter a valid LinkedIn URL."
       );
@@ -194,7 +240,9 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
               >
                 1
               </div>
-              <span className={`text-xs font-medium hidden sm:inline ${step >= 1 ? "text-gray-700" : "text-gray-400"}`}>{t.leadModal.step1}</span>
+              <span className={`text-xs font-medium hidden sm:inline ${step >= 1 ? "text-gray-700" : "text-gray-400"}`}>
+                {t.leadModal.step1}
+              </span>
             </div>
             <div className={`flex-1 h-0.5 mx-3 min-w-[12px] ${step >= 2 ? "bg-blue-600" : "bg-gray-200"}`} />
             <div className="flex items-center gap-2">
@@ -203,7 +251,9 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
               >
                 2
               </div>
-              <span className={`text-xs font-medium hidden sm:inline ${step >= 2 ? "text-gray-700" : "text-gray-400"}`}>{t.leadModal.step2}</span>
+              <span className={`text-xs font-medium hidden sm:inline ${step >= 2 ? "text-gray-700" : "text-gray-400"}`}>
+                {t.leadModal.step2}
+              </span>
             </div>
           </div>
 
@@ -216,14 +266,14 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     <Linkedin size={18} />
                   </div>
                   <input
-                    type="url"
+                    type="text"
                     name="linkedinUrl"
                     maxLength={FORM_MAX_LENGTH.leadUrl}
                     value={formik.values.linkedinUrl || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     placeholder={t.leadModal.linkedinPlaceholder}
-                    className="w-full pl-10 pr-4 py-3 border-gray-200 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    className="w-full pl-10 pr-4 py-3 border border-blue-200 rounded-xl outline-none focus:border-blue-500 focus:ring-0 text-sm"
                   />
                 </div>
                 {enrichmentError && <p className="mt-2 text-xs text-red-500">{enrichmentError}</p>}
@@ -244,7 +294,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                 </button>
                 <button
                   onClick={() => setStep(2)}
-                  className="w-full bg-white text-gray-600 font-bold py-3 px-4 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all flex items-center justify-center"
+                  className="w-full bg-white text-gray-600 font-bold py-3 px-4 rounded-xl border border-blue-200 hover:bg-gray-50 transition-all flex items-center justify-center"
                 >
                   {t.leadModal.manualBtn}
                   <ChevronRight className="ml-2" size={18} />
@@ -252,7 +302,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
               </div>
             </div>
           ) : (
-            <form onSubmit={formik.handleSubmit} className="space-y-4 pb-4">
+            <form onSubmit={formik.handleSubmit} className="space-y-4 pb-4" noValidate>
               {apiError && !formik.errors.company && !formik.errors.email && !formik.errors.phone && (
                 <div className="p-3 rounded-lg bg-red-50 border border-red-100">
                   <p className="text-sm font-medium text-red-700">{apiError}</p>
@@ -270,7 +320,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     value={formik.values.firstName || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
                   />
                   {formik.touched.firstName && formik.errors.firstName && (
                     <p className="mt-1 text-xs text-red-500">{formik.errors.firstName}</p>
@@ -287,7 +337,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     value={formik.values.lastName || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
                   />
                   {formik.touched.lastName && formik.errors.lastName && (
                     <p className="mt-1 text-xs text-red-500">{formik.errors.lastName}</p>
@@ -307,7 +357,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     value={formik.values.currentPosition || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
                   />
                   {formik.touched.currentPosition && formik.errors.currentPosition && (
                     <p className="mt-1 text-xs text-red-500">{formik.errors.currentPosition}</p>
@@ -322,7 +372,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     value={formik.values.company || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
                   />
                   {(formik.touched.company || formik.errors.company) && formik.errors.company && (
                     <p className="mt-1 text-xs text-red-500">{formik.errors.company}</p>
@@ -337,7 +387,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                   value={formik.values.ownerName || ""}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0 bg-white"
                 >
                   <option value="" disabled>
                     {t.leadModal.selectOwner}
@@ -363,7 +413,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     value={formik.values.email || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
                   />
                   {formik.touched.email && formik.errors.email && (
                     <p className="mt-1 text-xs text-red-500">{formik.errors.email}</p>
@@ -378,7 +428,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     value={formik.values.phone || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
                   />
                   {formik.touched.phone && formik.errors.phone && (
                     <p className="mt-1 text-xs text-red-500">{formik.errors.phone}</p>
@@ -395,13 +445,13 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                   <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                   <input
                     name="linkedinUrl"
-                    type="url"
+                    type="text"
                     maxLength={FORM_MAX_LENGTH.leadUrl}
                     value={formik.values.linkedinUrl || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     placeholder={t.leadModal.linkedinPlaceholderShort}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
                   />
                 </div>
                 {formik.touched.linkedinUrl && formik.errors.linkedinUrl && (
@@ -417,7 +467,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                   value={formik.values.birthday || ""}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
                 />
                 {formik.touched.birthday && formik.errors.birthday && (
                   <p className="mt-1 text-xs text-red-500">{formik.errors.birthday}</p>

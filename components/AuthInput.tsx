@@ -61,7 +61,7 @@ const AuthInput: React.FC<AuthInputProps> = ({
             aria-label={isPasswordVisible ? "Hide password" : "Show password"}
             title={isPasswordVisible ? "Hide password" : "Show password"}
           >
-            {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+            {isPasswordVisible ? <Eye size={18} /> : <EyeOff size={18} />}
           </button>
         )}
       </div>

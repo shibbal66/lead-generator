@@ -33,9 +33,7 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ owners, projects, lang })
 
   useEffect(() => {
     const nextParams = params();
-    console.log("[Analytics] deals params", nextParams);
     dispatch(getAnalyticsDeals(nextParams));
-    console.log("[Analytics] pipeline params", nextParams);
     dispatch(getAnalyticsPipeline(nextParams));
   }, [dispatch, params]);
 
@@ -53,7 +51,6 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ owners, projects, lang })
       startDate: startDate || baseParams.startDate,
       endDate: endDate || baseParams.endDate
     };
-    console.log("[Analytics] export deals params", exportParams);
     const result = await dispatch(exportDealsCsv(exportParams));
     if (!exportDealsCsv.fulfilled.match(result)) {
       throw new Error((result.payload as string) || "Failed to export deals CSV");

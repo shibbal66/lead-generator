@@ -1,18 +1,18 @@
 import { PipelineStage } from "./types";
 
 export const FORM_MAX_LENGTH = {
-  leadFirstName: 30,
-  leadLastName: 30,
-  leadPosition: 30,
-  leadCompany: 30,
+  leadFirstName: 50,
+  leadLastName: 50,
+  leadPosition: 50,
+  leadCompany: 50,
   leadEmail: 254,
   leadPhone: 25,
   leadUrl: 500,
-  projectTitle: 30,
+  projectTitle: 50,
   projectDescription: 50,
-  userName: 30,
-  todoDescription: 50,
-  comment: 100
+  userName: 50,
+  todoDescription: 1000,
+  comment: 500
 } as const;
 
 export const STAGES: PipelineStage[] = [

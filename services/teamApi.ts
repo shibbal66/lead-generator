@@ -72,7 +72,6 @@ export const teamApi = {
 
     const path = query.toString() ? `/team?${query.toString()}` : "/team";
     const response = await apiRequest(path, { method: "GET" });
-    console.log("[Team API] members & invitations response", response);
     const data = response.data || {};
 
     const users = response.users || response.members || response.teamMembers || data.users || data.members || data.teamMembers || [];
@@ -119,12 +118,6 @@ export const teamApi = {
     body.append("email", payload.email);
     body.append("role", payload.role);
 
-    console.log("[Team API] POST /team/invite — request body", {
-      email: payload.email,
-      role: payload.role,
-      bodyString: body.toString()
-    });
-
     const response = await apiRequest("/team/invite", {
       method: "POST",
       headers: {
@@ -137,15 +130,6 @@ export const teamApi = {
       (response as { invitationId?: string }).invitationId ??
       (response as { invitation?: { id?: string } }).invitation?.id ??
       (response as { id?: string }).id;
-    console.log("[Team API] POST /team/invite — response", {
-      success: response.success,
-      message: response.message,
-      invitationId: invitationId ?? "(not in response)",
-      full: response
-    });
-    if (invitationId) {
-      console.log("[Team API] invitationId (for link/signup)", invitationId);
-    }
 
     return {
       message: response.message || "Invitation sent successfully"
@@ -154,7 +138,6 @@ export const teamApi = {
 
   getInvitationById: async (invitationId: string): Promise<TeamInvitation> => {
     const path = `/team/invitation/${encodeURIComponent(invitationId)}`;
-    console.log("[Team API] GET invitation by ID — public request (no auth)", { invitationId, path });
 
     const res = await requestPublic(path, { method: "GET" });
     const response = await parseJsonSafe(res);
@@ -166,15 +149,6 @@ export const teamApi = {
         : rawMessage || "Invitation is invalid or expired.";
       throw new Error(message);
     }
-
-    console.log("[Team API] GET invitation by ID — response", {
-      invitationId,
-      hasInvitation: Boolean(response.invitation),
-      email: response.email ?? response.invitation?.email,
-      role: response.role ?? response.invitation?.role,
-      full: response
-    });
-    console.log("[Team API] invitationId (resolved)", response.invitation?.id ?? response.invitationId ?? invitationId);
 
     if (response.invitation) {
       return {
@@ -195,9 +169,7 @@ export const teamApi = {
   },
 
   cancelInvitation: async (invitationId: string): Promise<{ invitationId: string; message: string }> => {
-    console.log("[Team API] DELETE cancel invitation — request", { invitationId, path: `/team/invitation/${invitationId}` });
     const response = await apiRequest(`/team/invitation/${invitationId}`, { method: "DELETE" });
-    console.log("[Team API] DELETE cancel invitation — response", { message: response.message, full: response });
     const responseInvitationId =
       (response as { invitationId?: string; invitationID?: string; id?: string }).invitationId ||
       (response as { invitationId?: string; invitationID?: string; id?: string }).invitationID ||
@@ -211,9 +183,7 @@ export const teamApi = {
   },
 
   deleteTeamMember: async ({ userId }: DeleteTeamMemberPayload): Promise<{ userId: string; message: string }> => {
-    console.log("[Team API] DELETE team member — request", { userId, path: `/user/${userId}` });
     const response = await apiRequest(`/user/${userId}`, { method: "DELETE" });
-    console.log("[Team API] DELETE team member — response", { message: response.message, full: response });
 
     return {
       userId,

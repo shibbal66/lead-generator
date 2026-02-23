@@ -134,7 +134,6 @@ const SignUpRoute: React.FC = () => {
     if (hasTriggeredInvitationLookup.current) return;
     dispatch(clearInvitation());
     hasTriggeredInvitationLookup.current = true;
-    console.log("[SignUp Route] invitationId from URL", invitationId);
     dispatch(getInvitationById(invitationId));
   }, [dispatch, invitationId]);
 
@@ -244,8 +243,8 @@ const AppRoutes: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
         <Route element={<PublicRoute />}>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<SignInRoute />} />
           <Route path="/sign-up" element={<Navigate to="/signup" replace />} />
           <Route path="/signup" element={<SignUpRoute />} />

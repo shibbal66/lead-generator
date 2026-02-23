@@ -538,17 +538,21 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 <PieChart size={20} className="text-emerald-500" /> {t.analytics.chartLeadDistribution}
               </h3>
               <div className="max-h-[220px] space-y-4 overflow-y-auto pr-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                {leadDistribution.slice(0, 10).map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl group hover:bg-emerald-50 transition-all"
-                  >
-                    <span className="text-sm font-bold text-gray-700 truncate max-w-[200px]">{item.name}</span>
-                    <span className="text-xs font-black text-emerald-600 bg-white px-2 py-1 rounded-lg border border-emerald-100">
-                      {item.count} {t.analytics.dealsUnit}
-                    </span>
-                  </div>
-                ))}
+                {leadDistribution.length === 0 ? (
+                  <p className="text-sm text-gray-400 py-6 text-center">{t.analytics.noData}</p>
+                ) : (
+                  leadDistribution.slice(0, 10).map((item, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl group hover:bg-emerald-50 transition-all"
+                    >
+                      <span className="text-sm font-bold text-gray-700 truncate max-w-[200px]">{item.name}</span>
+                      <span className="text-xs font-black text-emerald-600 bg-white px-2 py-1 rounded-lg border border-emerald-100">
+                        {item.count} {t.analytics.dealsUnit}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
             <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm flex flex-col">
@@ -556,28 +560,32 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 <BarChart3 size={20} className="text-blue-500" /> {t.analytics.chartOwnerPerformance}
               </h3>
               <div className="max-h-[240px] space-y-6 overflow-y-auto pr-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                {ownerPerformance.map((op, i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="flex justify-between items-center px-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
-                          {op.avatar}
+                {ownerPerformance.length === 0 ? (
+                  <p className="text-sm text-gray-400 py-6 text-center">{t.analytics.noData}</p>
+                ) : (
+                  ownerPerformance.map((op, i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="flex justify-between items-center px-1">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+                            {op.avatar}
+                          </div>
+                          <span className="text-sm font-bold text-gray-700">{op.name}</span>
                         </div>
-                        <span className="text-sm font-bold text-gray-700">{op.name}</span>
+                        <span className="text-sm font-black text-emerald-600">{op.volume.toLocaleString(locale)} €</span>
                       </div>
-                      <span className="text-sm font-black text-emerald-600">{op.volume.toLocaleString(locale)} €</span>
+                      <div className="h-4 w-full bg-gray-50 rounded-full overflow-hidden border border-gray-100 p-0.5">
+                        <div
+                          className="h-full rounded-full transition-all duration-1000"
+                          style={{
+                            width: `${(op.volume / Math.max(...ownerPerformance.map((o) => o.volume))) * 100}%`,
+                            background: "linear-gradient(90deg, #10b981 0%, #34d399 100%)"
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-4 w-full bg-gray-50 rounded-full overflow-hidden border border-gray-100 p-0.5">
-                      <div
-                        className="h-full rounded-full transition-all duration-1000"
-                        style={{
-                          width: `${(op.volume / Math.max(...ownerPerformance.map((o) => o.volume))) * 100}%`,
-                          background: "linear-gradient(90deg, #10b981 0%, #34d399 100%)"
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -612,12 +620,13 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                     <span className="text-sm font-bold text-gray-400 uppercase">{t.analytics.metrics.days}</span>
                   </>
                 ) : (
-                  "—"
+                  <span className="text-base font-semibold text-gray-400">{t.analytics.noDataShort}</span>
                 )}
               </h4>
             </div>
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-center">
+            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-2">
               <CheckCircle2 size={40} className="text-emerald-500 opacity-20" />
+              <span className="text-sm text-gray-400">{t.analytics.noDataShort}</span>
             </div>
           </div>
 
@@ -627,21 +636,25 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 <Layers size={20} className="text-indigo-500" /> {t.analytics.chartPipelineFunnel}
               </h3>
               <div className="max-h-[200px] space-y-3 overflow-y-auto py-1 pr-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                {pipelineFunnel.map((item, i) => {
-                  const maxCount = Math.max(...pipelineFunnel.map((f) => f.count));
-                  const width = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
-                  return (
-                    <div key={i} className="group relative flex items-center h-12 w-full">
-                      <div
-                        className={`h-full rounded-r-2xl transition-all duration-1000 ease-out flex items-center px-4 ${STAGE_COLORS[item.stage as PipelineStage]}`}
-                        style={{ width: `${Math.max(width, 15)}%` }}
-                      >
-                        <span className="text-[10px] font-black uppercase tracking-widest truncate">{item.title}</span>
+                {pipelineFunnel.every((f) => f.count === 0) ? (
+                  <p className="text-sm text-gray-400 py-6 text-center">{t.analytics.noData}</p>
+                ) : (
+                  pipelineFunnel.map((item, i) => {
+                    const maxCount = Math.max(...pipelineFunnel.map((f) => f.count));
+                    const width = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+                    return (
+                      <div key={i} className="group relative flex items-center h-12 w-full">
+                        <div
+                          className={`h-full rounded-r-2xl transition-all duration-1000 ease-out flex items-center px-4 ${STAGE_COLORS[item.stage as PipelineStage]}`}
+                          style={{ width: `${Math.max(width, 15)}%` }}
+                        >
+                          <span className="text-[10px] font-black uppercase tracking-widest truncate">{item.title}</span>
+                        </div>
+                        <span className="ml-4 text-sm font-black text-gray-900">{item.count}</span>
                       </div>
-                      <span className="ml-4 text-sm font-black text-gray-900">{item.count}</span>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
             <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm flex flex-col">
@@ -649,27 +662,31 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 <Users size={20} className="text-blue-500" /> {t.analytics.chartLeadsByOwner}
               </h3>
               <div className="max-h-[240px] space-y-6 overflow-y-auto pr-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                {leadsByOwnerCount.map((oc, i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="flex justify-between items-center px-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
-                          {oc.avatar}
+                {leadsByOwnerCount.length === 0 ? (
+                  <p className="text-sm text-gray-400 py-6 text-center">{t.analytics.noData}</p>
+                ) : (
+                  leadsByOwnerCount.map((oc, i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="flex justify-between items-center px-1">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
+                            {oc.avatar}
+                          </div>
+                          <span className="text-sm font-bold text-gray-700">{oc.name}</span>
                         </div>
-                        <span className="text-sm font-bold text-gray-700">{oc.name}</span>
+                        <span className="text-sm font-black text-blue-600">
+                          {oc.count} {t.analytics.leadsUnit}
+                        </span>
                       </div>
-                      <span className="text-sm font-black text-blue-600">
-                        {oc.count} {t.analytics.leadsUnit}
-                      </span>
+                      <div className="h-4 w-full bg-gray-50 rounded-full overflow-hidden border border-gray-100 p-0.5">
+                        <div
+                          className="h-full rounded-full transition-all duration-1000 bg-blue-500"
+                          style={{ width: `${(oc.count / Math.max(...leadsByOwnerCount.map((o) => o.count))) * 100}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-4 w-full bg-gray-50 rounded-full overflow-hidden border border-gray-100 p-0.5">
-                      <div
-                        className="h-full rounded-full transition-all duration-1000 bg-blue-500"
-                        style={{ width: `${(oc.count / Math.max(...leadsByOwnerCount.map((o) => o.count))) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>

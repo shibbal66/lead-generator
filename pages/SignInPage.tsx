@@ -50,7 +50,6 @@ const SignInPage: React.FC<SignInPageProps> = ({
     },
     validationSchema: schema,
     onSubmit: (values) => {
-      console.log("[SignIn] submit", { email: values.email, passwordLength: values.password.length });
       onSubmit(values);
     }
   });
@@ -63,7 +62,6 @@ const SignInPage: React.FC<SignInPageProps> = ({
 
   useEffect(() => {
     if (!successMessage) return;
-    console.log("[SignIn] success", successMessage);
     setToastState({ open: true, type: "success", message: successMessage });
   }, [successMessage]);
 
