@@ -16,6 +16,36 @@
         font-family: "Inter", sans-serif;
         background-color: #f9fafb;
       }
+      html { scroll-behavior: smooth; }
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+      @keyframes gradientShift {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 1; }
+      }
+      @keyframes pulse-soft {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.85; }
+      }
+      @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 10px 40px -10px rgba(37, 99, 235, 0.35); }
+        50% { box-shadow: 0 10px 50px -5px rgba(37, 99, 235, 0.5); }
+      }
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
+      .animate-float { animation: float 6s ease-in-out infinite; }
+      .animate-gradient { animation: gradientShift 4s ease-in-out infinite; }
+      .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+      .animate-pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
     </style>
     <script type="importmap">
       {

@@ -1,0 +1,21 @@
+{
+  "title": "About LeadGen Pro",
+  "description": "We built LeadGen Pro to give sales and marketing teams one clear view of every lead—from first touch to closed deal—so nothing slips through the cracks.",
+  "cards": [
+    {
+      "title": "Lead-first",
+      "description": "Every contact lives in one pipeline. Track status, notes, and next steps without switching tools.",
+      "color": "blue"
+    },
+    {
+      "title": "Team-ready",
+      "description": "Invite your team, assign owners, and keep everyone aligned with shared pipelines and projects.",
+      "color": "indigo"
+    },
+    {
+      "title": "Revenue-focused",
+      "description": "Connect leads to deals and projects so you can see what's moving and what's stuck.",
+      "color": "emerald"
+    }
+  ]
+}

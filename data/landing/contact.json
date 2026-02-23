@@ -1,0 +1,21 @@
+{
+  "badge": "Contact us",
+  "title": "Get in touch",
+  "description": "Have a question, feedback, or ready to grow your pipeline? We're here to help. Choose the option that works best for you.",
+  "loginPrompt": "Already have an account?",
+  "loginLink": "Log in",
+  "options": [
+    {
+      "title": "Start free",
+      "description": "Create an account in under a minute and invite your team.",
+      "action": "Create account",
+      "href": "/signup"
+    },
+    {
+      "title": "Email support",
+      "description": "Reach out for help, feature requests, or partnership inquiries.",
+      "action": "Send email",
+      "href": "mailto:support@leadgenpro.example.com"
+    }
+  ]
+}

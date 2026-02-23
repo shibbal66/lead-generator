@@ -1,0 +1,26 @@
+{
+  "overline": "By the numbers",
+  "title": "Trusted by teams worldwide",
+  "items": [
+    {
+      "value": "10K+",
+      "label": "Leads managed",
+      "description": "Track and nurture every lead in one pipeline."
+    },
+    {
+      "value": "500+",
+      "label": "Teams onboarded",
+      "description": "Sales and marketing teams growing with LeadGen Pro."
+    },
+    {
+      "value": "24/7",
+      "label": "Pipeline visibility",
+      "description": "Your pipeline and deals, always up to date."
+    },
+    {
+      "value": "99%",
+      "label": "Uptime",
+      "description": "Reliable when you need it most."
+    }
+  ]
+}

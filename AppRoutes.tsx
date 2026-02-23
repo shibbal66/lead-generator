@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate, useSearchParams } 
 
 import App from "./App";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import LandingPage from "./pages/LandingPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
@@ -37,7 +38,7 @@ const CatchAllRedirect: React.FC = () => {
     return <div className="min-h-screen bg-gray-50" />;
   }
 
-  return <Navigate to={isAuthenticated ? "/" : "/login"} replace />;
+  return <Navigate to={isAuthenticated ? "/app" : "/"} replace />;
 };
 
 const SignInRoute: React.FC = () => {
@@ -243,6 +244,7 @@ const AppRoutes: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<SignInRoute />} />
           <Route path="/sign-up" element={<Navigate to="/signup" replace />} />
@@ -252,7 +254,7 @@ const AppRoutes: React.FC = () => {
         </Route>
 
         <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<App />} />
+          <Route path="/app" element={<App />} />
         </Route>
 
         <Route path="*" element={<CatchAllRedirect />} />

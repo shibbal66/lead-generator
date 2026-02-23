@@ -15,7 +15,7 @@ const PublicRoute: React.FC = () => {
   }, [bootstrapStatus, dispatch]);
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   if (bootstrapStatus === "loading" || bootstrapStatus === "idle") {

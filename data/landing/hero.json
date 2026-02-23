@@ -1,0 +1,16 @@
+{
+  "badge": "LeadGen Pro",
+  "tagline": "Your pipeline, one place",
+  "headlinePrefix": "Close more leads ",
+  "headlineAccent": "with a faster workflow.",
+  "description": "Manage your pipeline, keep every team aligned, and turn qualified opportunities into predictable revenue—all in one place.",
+  "ctaPrimary": "Get started free",
+  "ctaSecondary": "See how it works",
+  "bullets": [
+    { "text": "Unified pipeline & team view", "icon": "Sparkles" },
+    { "text": "Secure workspace access", "icon": "ShieldCheck" }
+  ],
+  "visualPill1": "+24% conversion",
+  "visualPill2": "Team ready",
+  "visualCaption": "Pipeline · Deals · Team"
+}

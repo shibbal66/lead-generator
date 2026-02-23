@@ -1,0 +1,35 @@
+{
+  "overline": "FAQ",
+  "title": "Got questions? We get that.",
+  "subtitle": "Everything you need to know about LeadGen Pro.",
+  "groups": [
+    {
+      "items": [
+        {
+          "q": "What is LeadGen Pro?",
+          "a": "LeadGen Pro is a lead and pipeline management tool. You get a shared pipeline (Kanban), projects, tasks, deals, and team features so your whole team can track leads from first contact to closed deal."
+        },
+        {
+          "q": "Who is it for?",
+          "a": "Sales and marketing teams that want one place to manage leads, assign owners, track deals, and stay aligned. It works for small teams and scales with roles and permissions."
+        },
+        {
+          "q": "Is there a free trial?",
+          "a": "Yes. You can create a free account and start adding leads, building your pipeline, and inviting your team. No credit card required to get started."
+        },
+        {
+          "q": "How do I invite my team?",
+          "a": "Admins can invite team members by email from the app. Invitees get a link to sign up and join your workspace with the role you choose (e.g. Editor or Admin)."
+        },
+        {
+          "q": "Can I assign leads to different owners?",
+          "a": "Yes. Each lead has an owner, and you can filter and sort by owner. Only users you invite to your workspace can be set as owners."
+        },
+        {
+          "q": "Is my data secure?",
+          "a": "We use secure authentication and role-based access. Only invited members can access your workspace, and you control who sees what."
+        }
+      ]
+    }
+  ]
+}

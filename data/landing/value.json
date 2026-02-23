@@ -1,0 +1,43 @@
+{
+  "title": "Your trusted partner for ",
+  "titleAccent": "pipeline.",
+  "description": "One workspace for your pipeline, team, and revenue—so you spend less time juggling tools and more time closing.",
+  "features": [
+    {
+      "icon": "LayoutDashboard",
+      "title": "Unified pipeline",
+      "description": "Drag-and-drop Kanban boards for every stage—from identified to closed. Filter by owner, project, or date so you see exactly what matters.",
+      "color": "blue"
+    },
+    {
+      "icon": "FolderKanban",
+      "title": "Projects & organization",
+      "description": "Group leads by campaign or initiative. Create projects, assign leads, and track progress in one place.",
+      "color": "indigo"
+    },
+    {
+      "icon": "CheckSquare",
+      "title": "Tasks & todos",
+      "description": "Attach tasks and to-dos to leads and deals. Never miss a follow-up with clear deadlines and assignments.",
+      "color": "amber"
+    },
+    {
+      "icon": "DollarSign",
+      "title": "Deals & revenue",
+      "description": "Track deal value, stage, and currency. See pipeline value at a glance and close with confidence.",
+      "color": "emerald"
+    },
+    {
+      "icon": "BarChart3",
+      "title": "Analytics",
+      "description": "Pipeline and deal analytics so you can spot trends, forecast, and focus on what converts.",
+      "color": "violet"
+    },
+    {
+      "icon": "MessageSquare",
+      "title": "Comments & context",
+      "description": "Add comments and notes to leads. Keep full context for your team without leaving the app.",
+      "color": "slate"
+    }
+  ]
+}
