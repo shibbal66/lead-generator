@@ -24,7 +24,6 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
   const isDe = lang === "de";
   const lettersOnlyPattern = /^[\p{L}\s'-]+$/u;
   const noDigitsPattern = /^\D+$/;
-  const companyNamePattern = /^[\p{L}\p{N}\s]+$/u;
   const isValidLinkedInUrl = (value?: string) => {
     if (!value) return true;
     try {
@@ -51,6 +50,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
         firstName: Yup.string()
           .trim()
           .required(isDe ? "Vorname ist erforderlich" : "First name is required")
+          .min(3, isDe ? "Vorname muss mindestens 3 Zeichen haben" : "First name must be at least 3 characters")
           .max(
             FORM_MAX_LENGTH.leadFirstName,
             isDe ? `Max. ${FORM_MAX_LENGTH.leadFirstName} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadFirstName} characters`
@@ -91,14 +91,14 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
             isDe ? `Max. ${FORM_MAX_LENGTH.leadCompany} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadCompany} characters`
           )
           .test(
+            "company-no-digits",
+            isDe ? "Firma darf keine Zahlen enthalten" : "Company cannot contain numbers",
+            (value) => !value || noDigitsPattern.test(value)
+          )
+          .test(
             "company-chars",
-            isDe
-              ? "Firma darf nur Buchstaben, Zahlen und Leerzeichen enthalten"
-              : "Company can only contain letters, numbers, and spaces",
-            (value) => {
-              if (!value) return true;
-              return companyNamePattern.test(value);
-            }
+            isDe ? "Firma enthält ungültige Zeichen" : "Company contains invalid characters",
+            (value) => !value || lettersOnlyPattern.test(value)
           ),
         ownerName: Yup.string()
           .trim()
@@ -143,7 +143,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
           return !Number.isNaN(new Date(value).getTime());
         })
       }),
-    [companyNamePattern, isDe]
+    [isDe]
   );
 
   const formik = useFormik<Partial<Lead>>({
@@ -317,6 +317,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     name="firstName"
                     type="text"
                     maxLength={FORM_MAX_LENGTH.leadFirstName}
+                    placeholder={t.leadModal.firstNamePlaceholder}
                     value={formik.values.firstName || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
@@ -334,6 +335,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     name="lastName"
                     type="text"
                     maxLength={FORM_MAX_LENGTH.leadLastName}
+                    placeholder={t.leadModal.lastNamePlaceholder}
                     value={formik.values.lastName || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
@@ -354,6 +356,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     name="currentPosition"
                     type="text"
                     maxLength={FORM_MAX_LENGTH.leadPosition}
+                    placeholder={t.leadModal.positionPlaceholder}
                     value={formik.values.currentPosition || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
@@ -369,6 +372,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     name="company"
                     type="text"
                     maxLength={FORM_MAX_LENGTH.leadCompany}
+                    placeholder={t.leadModal.companyPlaceholder}
                     value={formik.values.company || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
@@ -410,6 +414,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     name="email"
                     type="email"
                     maxLength={FORM_MAX_LENGTH.leadEmail}
+                    placeholder={t.leadModal.emailPlaceholder}
                     value={formik.values.email || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
@@ -425,6 +430,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
                     name="phone"
                     type="tel"
                     maxLength={FORM_MAX_LENGTH.leadPhone}
+                    placeholder={t.leadModal.phonePlaceholder}
                     value={formik.values.phone || ""}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}

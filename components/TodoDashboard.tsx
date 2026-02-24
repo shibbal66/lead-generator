@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from "react";
-import { CheckCircle2, Circle, Calendar, Send, Clock, Loader2, User, Zap, Link as LinkIcon, Users } from "lucide-react";
+import { CheckCircle2, Circle, Calendar, Send, Clock, Loader2, User, Zap, Link as LinkIcon, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { translations, Language } from "../translations";
 import { FORM_MAX_LENGTH } from "../constants";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -428,26 +428,28 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) =
           </div>
         </section>
       </div>
-      <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
-        <p className="text-xs font-semibold text-gray-500">
+      <div className="mt-8 flex items-center justify-between gap-4 py-4 px-5 rounded-2xl bg-white border border-gray-200 shadow-sm">
+        <span className="text-sm font-semibold text-gray-600 bg-gray-50 rounded-lg px-4 py-2.5 border border-gray-100">
           {t.common.pageLabel.replace("{page}", String(page)).replace("{total}", String(totalPages))}
-        </p>
+        </span>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
             disabled={page <= 1 || loading}
-            className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 disabled:opacity-40"
+            className="inline-flex items-center justify-center gap-2 min-w-[100px] px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-transparent border border-gray-200 bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600"
           >
+            <ChevronLeft size={18} />
             {t.common.previous}
           </button>
           <button
             type="button"
             onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
             disabled={page >= totalPages || loading}
-            className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 disabled:opacity-40"
+            className="inline-flex items-center justify-center gap-2 min-w-[100px] px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-transparent border border-gray-200 bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600"
           >
             {t.common.next}
+            <ChevronRight size={18} />
           </button>
         </div>
       </div>

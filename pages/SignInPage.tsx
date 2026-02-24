@@ -35,9 +35,7 @@ const SignInPage: React.FC<SignInPageProps> = ({
     () =>
       Yup.object({
         email: Yup.string().email("Please enter a valid email address.").required("Email is required."),
-        password: Yup.string()
-          .min(6, "Password must be at least 6 characters.")
-          .required("Password is required.")
+        password: Yup.string().required("Password is required.")
       }),
     []
   );
@@ -57,22 +55,21 @@ const SignInPage: React.FC<SignInPageProps> = ({
   useEffect(() => {
     if (!errorMessage) return;
     console.error("[SignIn] API error", errorMessage);
-    setToastState({ open: true, type: "error", message: errorMessage });
+    const isEmailValidation = /email.*(valid|required|invalid)|(valid|required|invalid).*email/i.test(errorMessage);
+    if (isEmailValidation) {
+      formik.setFieldError("email", errorMessage);
+      return;
+    }
+    const isPasswordValidation =
+      /lowercase|uppercase|digit|special character|at least \d+ character/i.test(errorMessage);
+    const message = isPasswordValidation ? "Invalid email or password." : errorMessage;
+    setToastState({ open: true, type: "error", message });
   }, [errorMessage]);
 
   useEffect(() => {
     if (!successMessage) return;
     setToastState({ open: true, type: "success", message: successMessage });
   }, [successMessage]);
-
-  useEffect(() => {
-    if (formik.submitCount < 1) return;
-    const entries = Object.entries(formik.errors);
-    if (entries.length === 0) return;
-    const firstError = String(entries[0][1]);
-    console.warn("[SignIn] validation errors", formik.errors);
-    setToastState({ open: true, type: "error", message: firstError });
-  }, [formik.errors, formik.submitCount]);
 
   return (
     <>

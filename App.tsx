@@ -168,6 +168,7 @@ const App: React.FC = () => {
   const mapLeadRecordToUi = useCallback(
     (record: LeadRecord): Lead => {
       const notFoundText = currentLang === "de" ? "Nicht gefunden" : "Not found";
+      const notSpecifiedText = t.leadDetail.notSpecified;
       const commentCount =
         typeof record.commentCount === "number"
           ? record.commentCount
@@ -179,16 +180,16 @@ const App: React.FC = () => {
         id: record.id,
         firstName: record.firstName || notFoundText,
         lastName: record.lastName || notFoundText,
-        currentPosition: record.position || notFoundText,
-        company: record.company || notFoundText,
+        currentPosition: record.position || notSpecifiedText,
+        company: record.company || notSpecifiedText,
         linkedinUrl: record.socialLinks?.linkedin || "",
         facebookUrl: record.socialLinks?.facebook || "",
         instagramUrl: record.socialLinks?.instagram || "",
         tiktokUrl: record.socialLinks?.tiktok || "",
         twitterUrl: record.socialLinks?.twitter || "",
         ownerName: users.find((user) => user.id === record.ownerId)?.name || record.ownerName || notFoundText,
-        phone: record.phone || notFoundText,
-        email: record.email || notFoundText,
+        phone: record.phone || notSpecifiedText,
+        email: record.email || notSpecifiedText,
         birthday: record.birthday || "",
         pipelineStage: mapStatusToPipeline(record.status),
         projectId: record.projectId,
@@ -199,7 +200,7 @@ const App: React.FC = () => {
         files: []
       };
     },
-    [currentLang, users]
+    [currentLang, t, users]
   );
 
   const deletedLeads = useMemo(
@@ -326,21 +327,22 @@ const App: React.FC = () => {
       fallback?: Lead
     ): Lead => {
       const notFoundText = currentLang === "de" ? "Nicht gefunden" : "Not found";
+      const notSpecifiedText = t.leadDetail.notSpecified;
       const ownerName = users.find((user) => user.id === record.ownerId)?.name || fallback?.ownerName || notFoundText;
       return {
         id: record.id,
         firstName: record.firstName || notFoundText,
         lastName: record.lastName || notFoundText,
-        currentPosition: record.position || notFoundText,
-        company: record.company || notFoundText,
+        currentPosition: record.position || notSpecifiedText,
+        company: record.company || notSpecifiedText,
         linkedinUrl: record.socialLinks?.linkedin || "",
         facebookUrl: record.socialLinks?.facebook || "",
         instagramUrl: record.socialLinks?.instagram || "",
         tiktokUrl: record.socialLinks?.tiktok || "",
         twitterUrl: record.socialLinks?.twitter || "",
         ownerName,
-        phone: record.phone || notFoundText,
-        email: record.email || notFoundText,
+        phone: record.phone || notSpecifiedText,
+        email: record.email || notSpecifiedText,
         birthday: record.birthday || "",
         pipelineStage: mapStatusToPipeline(record.status),
         projectId: record.projectId,
@@ -358,7 +360,7 @@ const App: React.FC = () => {
         files: fallback?.files || []
       };
     },
-    [currentLang, users]
+    [currentLang, t, users]
   );
 
   const mapApiCommentToUi = useCallback(
@@ -481,6 +483,7 @@ const App: React.FC = () => {
       const mapDealTypeToLocal = (value?: string): DealType => {
         if (value === "ONLINE_TRADING") return DealType.ONLINE_TRAINING;
         if (value === "OFF_SITE") return DealType.OFFSITE;
+        if (value === "OTHERS" || value === "OTHER") return DealType.OTHER;
         return DealType.CONSULTING;
       };
       const localDeal: Deal = {
@@ -552,6 +555,7 @@ const App: React.FC = () => {
           (currentLang === "de" ? "Projekt erfolgreich erstellt." : "Project created successfully.")
       });
       setIsProjectModalOpen(false);
+      handleViewChange("my_projects");
     } catch (error) {
       setToastState({
         open: true,
@@ -736,7 +740,9 @@ const App: React.FC = () => {
                 ? DealType.ONLINE_TRAINING
                 : deal.dealType === "OFF_SITE"
                   ? DealType.OFFSITE
-                  : DealType.CONSULTING,
+                  : deal.dealType === "OTHERS" || deal.dealType === "OTHER"
+                    ? DealType.OTHER
+                    : DealType.CONSULTING,
             totalAmount: Number(deal.totalAmount || 0),
             currency: deal.currency === "DOLLAR" ? "USD" : deal.currency === "EURO" ? "EUR" : deal.currency,
             startDate: deal.startDate,
@@ -1069,6 +1075,7 @@ const App: React.FC = () => {
             (currentLang === "de" ? "Lead erfolgreich erstellt." : "Lead created successfully.")
         });
         setIsModalOpen(false);
+        handleViewChange("pipeline");
         const ownerId = ownerFilter === "All" ? undefined : ownerFilter;
         dispatch(
           getLeadsAction({
@@ -1456,84 +1463,90 @@ const App: React.FC = () => {
                 <Menu size={18} />
               </button>
 
-              {/* Search and Filters (desktop only) */}
-              <div className="hidden lg:flex items-center flex-1 max-w-3xl space-x-4 ml-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                  <input
-                    type="text"
-                    placeholder={t.header.searchPlaceholder}
-                    className="w-full pl-10 pr-10 py-2 bg-gray-50 border border-blue-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-0 transition-all"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                  {search && (
-                    <button
-                      type="button"
-                      onClick={() => setSearch("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200/80 transition-colors"
-                      aria-label={t.header.clearSearch}
-                    >
-                      <X size={18} />
-                    </button>
-                  )}
-                </div>
-
-                {/* Advanced Header Filters */}
-                <div className="flex items-center space-x-2 bg-gray-50 p-1 rounded-xl">
-                  <div className="px-2 text-gray-400">
-                    <Filter size={14} />
+              {/* Search and Filters (desktop only, Dashboard / pipeline only) */}
+              {activeView === "pipeline" && (
+                <div className="hidden lg:flex items-center flex-1 max-w-3xl space-x-4 ml-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      placeholder={t.header.searchPlaceholder}
+                      className="w-full pl-10 pr-10 py-2 bg-gray-50 border border-blue-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-0 transition-all"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                    {search && (
+                      <button
+                        type="button"
+                        onClick={() => setSearch("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200/80 transition-colors"
+                        aria-label={t.header.clearSearch}
+                      >
+                        <X size={18} />
+                      </button>
+                    )}
                   </div>
-                  <select
-                    className="bg-transparent text-xs font-semibold text-gray-600 border-none focus:ring-0 py-1"
-                    value={ownerFilter}
-                    onChange={(e) => setOwnerFilter(e.target.value)}
-                  >
-                    <option value="All">{t.header.allOwners}</option>
-                    {ownerOptions.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="w-[1px] h-4 bg-gray-200 mx-1" />
-                  <select
-                    className="bg-transparent text-xs font-semibold text-gray-600 border-none focus:ring-0 py-1 max-w-[120px]"
-                    value={projectFilter}
-                    onChange={(e) => setProjectFilter(e.target.value)}
-                  >
-                    <option value="All">{t.header.allProjects}</option>
-                    {projectOptions.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.title}
-                      </option>
-                    ))}
-                  </select>
+
+                  {/* Advanced Header Filters */}
+                  <div className="flex items-center space-x-2 bg-gray-50 p-1 rounded-xl">
+                    <div className="px-2 text-gray-400">
+                      <Filter size={14} />
+                    </div>
+                    <select
+                      className="bg-transparent text-xs font-semibold text-gray-600 border-none focus:ring-0 py-1"
+                      value={ownerFilter}
+                      onChange={(e) => setOwnerFilter(e.target.value)}
+                    >
+                      <option value="All">{t.header.allOwners}</option>
+                      {ownerOptions.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="w-[1px] h-4 bg-gray-200 mx-1" />
+                    <select
+                      className="bg-transparent text-xs font-semibold text-gray-600 border-none focus:ring-0 py-1 max-w-[120px]"
+                      value={projectFilter}
+                      onChange={(e) => setProjectFilter(e.target.value)}
+                    >
+                      <option value="All">{t.header.allProjects}</option>
+                      {projectOptions.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Actions: desktop only */}
+            {/* Actions: desktop only; Sort / Export / Trash only on Dashboard */}
             <div className="hidden lg:flex items-center space-x-3 ml-6">
-              <div className="flex items-center space-x-2 mr-2">
-                <span className="text-xs text-gray-400 font-medium">{t.header.sortBy}</span>
-                <button
-                  onClick={() => setSortField(sortField === "lastName" ? "createdAt" : "lastName")}
-                  className="text-xs font-bold text-blue-600 hover:underline"
-                >
-                  {sortField === "lastName" ? t.header.lastName : t.header.date}
-                </button>
-              </div>
+              {activeView === "pipeline" && (
+                <>
+                  <div className="flex items-center space-x-2 mr-2">
+                    <span className="text-xs text-gray-400 font-medium">{t.header.sortBy}</span>
+                    <button
+                      onClick={() => setSortField(sortField === "lastName" ? "createdAt" : "lastName")}
+                      className="text-xs font-bold text-blue-600 hover:underline"
+                    >
+                      {sortField === "lastName" ? t.header.lastName : t.header.date}
+                    </button>
+                  </div>
 
-              <button
-                onClick={handleExport}
-                className="p-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all flex items-center shadow-sm group"
-                title={t.header.exportTitle}
-              >
-                <Download size={20} className="text-emerald-600 group-hover:scale-110 transition-transform" />
-              </button>
+                  <button
+                    onClick={handleExport}
+                    className="p-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all flex items-center shadow-sm group"
+                    title={t.header.exportTitle}
+                  >
+                    <Download size={20} className="text-emerald-600 group-hover:scale-110 transition-transform" />
+                  </button>
 
-              <TrashBin onClick={handleOpenTrashModal} count={trashedLeadsCount} title={t.trash.openTitle} />
+                  <TrashBin onClick={handleOpenTrashModal} count={trashedLeadsCount} title={t.trash.openTitle} />
+                </>
+              )}
 
               <button
                 onClick={() => {
@@ -1569,7 +1582,9 @@ const App: React.FC = () => {
               </button>
             </div>
           </header>
-          {renderMainView()}
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {renderMainView()}
+          </div>
         </main>
 
         <LeadDetailDrawer
