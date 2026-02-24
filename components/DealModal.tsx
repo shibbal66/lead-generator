@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { X, CheckCircle, DollarSign, Calendar, Type, FileText, ChevronRight, FolderKanban, User } from "lucide-react";
+import { X, CheckCircle, DollarSign, Type, FileText, ChevronRight, FolderKanban, User } from "lucide-react";
 import { Lead, Deal, Project } from "../types";
 import { translations, Language } from "../translations";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { getProjects } from "../store/actions/projectActions";
 
 export type DealModalSubmitPayload = Omit<Deal, "id" | "createdAt" | "type"> & {
-  dealType: "CONSULTING" | "ONLINE_TRADING" | "OFF_SITE";
+  dealType: "CONSULTING" | "ONLINE_TRADING" | "OFF_SITE" | "OTHERS";
   ownerId: string;
 };
 
@@ -52,7 +52,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
         projectId: Yup.string().optional(),
         ownerId: Yup.string().required(lang === "de" ? "Betreuer ist erforderlich" : "Owner is required"),
         dealType: Yup.mixed<DealModalSubmitPayload["dealType"]>()
-          .oneOf(["CONSULTING", "ONLINE_TRADING", "OFF_SITE"])
+          .oneOf(["CONSULTING", "ONLINE_TRADING", "OFF_SITE", "OTHERS"])
           .required(),
         currency: Yup.string().oneOf(["EUR", "USD"]).required(),
         totalAmount: Yup.number()
@@ -212,6 +212,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
                 <option value="CONSULTING">CONSULTING</option>
                 <option value="ONLINE_TRADING">ONLINE_TRADING</option>
                 <option value="OFF_SITE">OFF_SITE</option>
+                <option value="OTHERS">OTHER</option>
               </select>
             </div>
             <div className="grid grid-cols-[1fr_2fr] gap-2">
@@ -257,22 +258,26 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
             </label>
             <div className="grid grid-cols-2 gap-3">
               <div className="relative">
+                {/* Calendar icon removed per design
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
+                */}
                 <input
                   name="startDate"
                   type="date"
-                  className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-[10px] font-bold text-gray-600"
+                  className="w-full pl-4 pr-4 py-3 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-[10px] font-bold text-gray-600"
                   value={formik.values.startDate}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
                 />
               </div>
               <div className="relative">
+                {/* Calendar icon removed per design
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
+                */}
                 <input
                   name="endDate"
                   type="date"
-                  className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-[10px] font-bold text-gray-600"
+                  className="w-full pl-4 pr-4 py-3 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-[10px] font-bold text-gray-600"
                   value={formik.values.endDate}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}

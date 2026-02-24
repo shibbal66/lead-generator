@@ -53,6 +53,11 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
   useEffect(() => {
     if (!errorMessage) return;
     console.error("[ForgotPassword] API error", errorMessage);
+    const isEmailValidation = /email.*(valid|required|invalid)|(valid|required|invalid).*email/i.test(errorMessage);
+    if (isEmailValidation) {
+      formik.setFieldError("email", errorMessage);
+      return;
+    }
     setToastState({ open: true, type: "error", message: errorMessage });
   }, [errorMessage]);
 
@@ -60,15 +65,6 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
     if (!successMessage) return;
     setToastState({ open: true, type: "success", message: successMessage });
   }, [successMessage]);
-
-  useEffect(() => {
-    if (formik.submitCount < 1) return;
-    const entries = Object.entries(formik.errors);
-    if (entries.length === 0) return;
-    const firstError = String(entries[0][1]);
-    console.warn("[ForgotPassword] validation errors", formik.errors);
-    setToastState({ open: true, type: "error", message: firstError });
-  }, [formik.errors, formik.submitCount]);
 
   return (
     <>

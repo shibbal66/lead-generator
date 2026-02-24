@@ -32,7 +32,8 @@ import {
   FolderKanban,
   CheckCircle2,
   Circle,
-  Clock
+  Clock,
+  ChevronLeft
 } from "lucide-react";
 import { FORM_MAX_LENGTH, STAGE_COLORS, STAGES } from "../constants";
 import { api } from "../services/api";
@@ -214,7 +215,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
         linkedinUrl: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
           .max(FORM_MAX_LENGTH.leadUrl, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`)
-          .test("linkedin-domain", t.leadDetail.errorUrlHttps, (value) => {
+          .test("linkedin-domain", t.leadDetail.errorUrlLinkedIn, (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
             return Yup.string().url().isValidSync(normalized) && isValidLinkedInUrl(normalized);
@@ -222,7 +223,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
         facebookUrl: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
           .max(FORM_MAX_LENGTH.leadUrl, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`)
-          .test("facebook-domain", t.leadDetail.errorUrlHttps, (value) => {
+          .test("facebook-domain", t.leadDetail.errorUrlFacebook, (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
             return Yup.string().url().isValidSync(normalized) && isValidFacebookUrl(normalized);
@@ -230,7 +231,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
         instagramUrl: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
           .max(FORM_MAX_LENGTH.leadUrl, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`)
-          .test("instagram-domain", t.leadDetail.errorUrlHttps, (value) => {
+          .test("instagram-domain", t.leadDetail.errorUrlInstagram, (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
             return Yup.string().url().isValidSync(normalized) && isValidInstagramUrl(normalized);
@@ -238,7 +239,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
         tiktokUrl: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
           .max(FORM_MAX_LENGTH.leadUrl, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`)
-          .test("tiktok-domain", t.leadDetail.errorUrlHttps, (value) => {
+          .test("tiktok-domain", t.leadDetail.errorUrlTikTok, (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
             return Yup.string().url().isValidSync(normalized) && isValidTikTokUrl(normalized);
@@ -246,7 +247,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
         twitterUrl: Yup.string()
           .transform((value) => (typeof value === "string" ? value.trim() : value))
           .max(FORM_MAX_LENGTH.leadUrl, lang === "de" ? `Max. ${FORM_MAX_LENGTH.leadUrl} Zeichen` : `Max. ${FORM_MAX_LENGTH.leadUrl} characters`)
-          .test("twitter-domain", t.leadDetail.errorUrlHttps, (value) => {
+          .test("twitter-domain", t.leadDetail.errorUrlTwitter, (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
             if (!normalized) return true;
             return Yup.string().url().isValidSync(normalized) && isValidTwitterUrl(normalized);
@@ -255,7 +256,10 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
     [companyNamePattern, lang, lettersOnlyPattern, noDigitsPattern, t]
   );
 
-  const notFoundPlaceholders = useMemo(() => new Set(["Not found", "Nicht gefunden"]), []);
+  const notFoundPlaceholders = useMemo(
+    () => new Set(["Not found", "Nicht gefunden", "Not specified", "Keine Angabe"]),
+    []
+  );
   const emptyIfNotFound = (value?: string) => {
     if (!value) return "";
     const t = value.trim();
@@ -444,7 +448,6 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                 {lead.firstName} {lead.lastName}
               </h2>
               <div className="flex flex-col gap-1 mt-1">
-                <p className="text-xs text-gray-500">ID: {lead.id}</p>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(totalDealSumByCurrency).map(([curr, sum]) => (
                     <div
@@ -459,17 +462,25 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
               </div>
             </div>
             <div className="flex items-center space-x-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  if (isEditing) handleSave();
-                  else setIsEditing(true);
-                }}
-                className={`p-2 rounded-lg transition-colors ${isEditing ? "bg-blue-600 text-white" : "text-gray-500 hover:text-blue-600 hover:bg-white"}`}
-                title={isEditing ? t.common.save : t.common.edit}
-              >
-                {isEditing ? <Save size={20} /> : <Edit2 size={20} />}
-              </button>
+              {isEditing ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-white rounded-lg transition-colors"
+                  title={t.common.cancel}
+                >
+                  <ChevronLeft size={20} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="p-2 text-gray-500 hover:text-blue-600 hover:bg-white rounded-lg transition-colors"
+                  title={t.common.edit}
+                >
+                  <Edit2 size={20} />
+                </button>
+              )}
               {onDelete && (
                 <button
                   type="button"

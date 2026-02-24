@@ -10,7 +10,8 @@ export enum PipelineStage {
 export enum DealType {
   CONSULTING = "Beratung",
   ONLINE_TRAINING = "Online Training",
-  OFFSITE = "Offsite"
+  OFFSITE = "Offsite",
+  OTHER = "Other"
 }
 
 export enum UserStatus {

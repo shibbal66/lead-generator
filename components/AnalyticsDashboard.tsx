@@ -56,18 +56,22 @@ const API_DEAL_TYPE_TO_ENUM: Record<string, DealType> = {
   CONSULTING: DealType.CONSULTING,
   ONLINE_TRADING: DealType.ONLINE_TRAINING,
   OFF_SITE: DealType.OFFSITE,
+  OTHER: DealType.OTHER,
+  OTHERS: DealType.OTHER,
   ONLINE_TRAINING: DealType.ONLINE_TRAINING,
   OFFSITE: DealType.OFFSITE
 };
 
 function initials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "?";
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "?"
+  );
 }
 
 const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
@@ -180,7 +184,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     const out = {
       [DealType.CONSULTING]: 0,
       [DealType.ONLINE_TRAINING]: 0,
-      [DealType.OFFSITE]: 0
+      [DealType.OFFSITE]: 0,
+      [DealType.OTHER]: 0
     };
     (apiDealsData?.dealsValueByType ?? []).forEach((row) => {
       const key = API_DEAL_TYPE_TO_ENUM[row.dealType];
@@ -231,9 +236,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   // --- Deal KPIs & Charts (pick API vs local) ---
   const totalVolume =
-    isApiMode && apiDealsData != null
-      ? apiTotalVolume
-      : filteredDeals.reduce((sum, d) => sum + d.totalAmount, 0);
+    isApiMode && apiDealsData != null ? apiTotalVolume : filteredDeals.reduce((sum, d) => sum + d.totalAmount, 0);
   const volumeByType =
     isApiMode && apiDealsData != null
       ? apiVolumeByType
@@ -246,6 +249,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             .reduce((sum, d) => sum + d.totalAmount, 0),
           [DealType.OFFSITE]: filteredDeals
             .filter((d) => d.type === DealType.OFFSITE)
+            .reduce((sum, d) => sum + d.totalAmount, 0),
+          [DealType.OTHER]: filteredDeals
+            .filter((d) => d.type === DealType.OTHER)
             .reduce((sum, d) => sum + d.totalAmount, 0)
         };
   const leadDistribution =
@@ -304,16 +310,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       : filteredLeads.length === 0
         ? 0
         : Math.round(
-            (filteredLeads.filter((l) => l.pipelineStage === PipelineStage.CLOSED).length / filteredLeads.length) *
-              100
+            (filteredLeads.filter((l) => l.pipelineStage === PipelineStage.CLOSED).length / filteredLeads.length) * 100
           );
   const conversionRateDisplay = useMemo(() => {
     const n = Number(conversionRate);
     if (!Number.isFinite(n)) return "0";
     return n.toFixed(2).replace(/\.?0+$/, "");
   }, [conversionRate]);
-  const activeLeadsCount =
-    isApiMode && apiPipelineData != null ? apiActiveLeads : filteredLeads.length;
+  const activeLeadsCount = isApiMode && apiPipelineData != null ? apiActiveLeads : filteredLeads.length;
   const leadsByOwnerCount =
     isApiMode && apiPipelineData != null
       ? apiLeadsByOwnerCount
@@ -321,7 +325,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           const counts: Record<string, { count: number; name: string; avatar: string }> = {};
           filteredLeads.forEach((l) => {
             const owner = owners.find((o) => o.name === l.ownerName);
-            if (!counts[l.ownerName]) counts[l.ownerName] = { count: 0, name: l.ownerName, avatar: owner?.avatar || "?" };
+            if (!counts[l.ownerName])
+              counts[l.ownerName] = { count: 0, name: l.ownerName, avatar: owner?.avatar || "?" };
             counts[l.ownerName].count += 1;
           });
           return Object.values(counts).sort((a, b) => b.count - a.count);
@@ -372,16 +377,13 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     const sheetName = t.analytics.tabDeals.slice(0, 31);
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
     const fileBase = lang === "de" ? "Abschluesse" : "Deals";
-    XLSX.writeFile(
-      workbook,
-      `${fileBase}_${start || "all"}_${end || "all"}.xlsx`
-    );
+    XLSX.writeFile(workbook, `${fileBase}_${start || "all"}_${end || "all"}.xlsx`);
   };
 
   const locale = lang === "de" ? "de-DE" : "en-US";
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col p-4 lg:p-8 bg-white/50 backdrop-blur-sm rounded-3xl m-2 lg:m-4 shadow-inner overflow-y-auto lg:overflow-hidden relative">
+    <div className="flex-1 min-h-0 flex flex-col p-4 lg:p-8 bg-white/50 backdrop-blur-sm rounded-3xl m-2 lg:m-4 shadow-inner overflow-y-auto relative">
       {apiLoading && (
         <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-3xl">
           <Loader2 className="animate-spin text-blue-600" size={48} />
@@ -530,6 +532,18 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 />
               </div>
             </div>
+            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{t.analytics.kpiOther}</p>
+              <h4 className="text-xl font-extrabold text-gray-800">
+                {volumeByType[DealType.OTHER].toLocaleString(locale)} €
+              </h4>
+              <div className="mt-4 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gray-500"
+                  style={{ width: `${totalVolume > 0 ? (volumeByType[DealType.OTHER] / totalVolume) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1 min-h-0">
@@ -559,7 +573,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               <h3 className="text-xl font-black text-gray-900 tracking-tight mb-8 flex items-center gap-3">
                 <BarChart3 size={20} className="text-blue-500" /> {t.analytics.chartOwnerPerformance}
               </h3>
-              <div className="max-h-[240px] space-y-6 overflow-y-auto pr-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <div className="max-h-[240px] space-y-6 overflow-y-auto overflow-x-hidden pr-4 pb-6 custom-scrollbar">
                 {ownerPerformance.length === 0 ? (
                   <p className="text-sm text-gray-400 py-6 text-center">{t.analytics.noData}</p>
                 ) : (
@@ -572,7 +586,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                           </div>
                           <span className="text-sm font-bold text-gray-700">{op.name}</span>
                         </div>
-                        <span className="text-sm font-black text-emerald-600">{op.volume.toLocaleString(locale)} €</span>
+                        <span className="text-sm font-black text-emerald-600">
+                          {op.volume.toLocaleString(locale)} €
+                        </span>
                       </div>
                       <div className="h-4 w-full bg-gray-50 rounded-full overflow-hidden border border-gray-100 p-0.5">
                         <div
@@ -605,7 +621,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 {t.analytics.metrics.conversionRate}
               </p>
               <div className="flex items-baseline gap-2">
-                <h4 className="text-2xl lg:text-3xl font-black text-emerald-600 leading-none break-all">{conversionRateDisplay}%</h4>
+                <h4 className="text-2xl lg:text-3xl font-black text-emerald-600 leading-none break-all">
+                  {conversionRateDisplay}%
+                </h4>
                 <ArrowUpRight size={16} className="text-emerald-500" />
               </div>
             </div>
@@ -648,7 +666,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                           className={`h-full rounded-r-2xl transition-all duration-1000 ease-out flex items-center px-4 ${STAGE_COLORS[item.stage as PipelineStage]}`}
                           style={{ width: `${Math.max(width, 15)}%` }}
                         >
-                          <span className="text-[10px] font-black uppercase tracking-widest truncate">{item.title}</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest truncate">
+                            {item.title}
+                          </span>
                         </div>
                         <span className="ml-4 text-sm font-black text-gray-900">{item.count}</span>
                       </div>

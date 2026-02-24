@@ -8,7 +8,9 @@ import {
   XCircle,
   Search,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { translations, Language } from "../translations";
 import ShareModal from "./ShareModal";
@@ -67,6 +69,25 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
     ],
     [apiInvitations, members]
   );
+
+  const filteredRows = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return rows;
+    return rows.filter((row) => {
+      if (row.type === "member") {
+        const user = row.data;
+        return (
+          (user.name && user.name.toLowerCase().includes(term)) ||
+          (user.email && user.email.toLowerCase().includes(term))
+        );
+      }
+      const invitation = row.data;
+      return (
+        (invitation.email && invitation.email.toLowerCase().includes(term)) ||
+        (invitation.name && invitation.name.toLowerCase().includes(term))
+      );
+    });
+  }, [rows, search]);
 
   const formatDate = (value?: string) => {
     if (!value) return "-";
@@ -215,14 +236,14 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
                     <Loader2 className="animate-spin text-blue-600 mx-auto" size={32} />
                   </td>
                 </tr>
-              ) : rows.length === 0 ? (
+              ) : filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-20 text-center italic text-gray-400 text-sm">
                     {t.userMgmt.noUsers}
                   </td>
                 </tr>
               ) : (
-                rows.map((row) => {
+                filteredRows.map((row) => {
                   if (row.type === "member") {
                     const user = row.data;
                     return (
@@ -355,28 +376,30 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
           }}
         />
       )}
-      <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
-        <p className="text-xs font-semibold text-gray-500">
+      <div className="mt-8 flex items-center justify-between gap-4 py-4 px-5 rounded-2xl bg-white border border-gray-200 shadow-sm">
+        <span className="text-sm font-semibold text-gray-600 bg-gray-50 rounded-lg px-4 py-2.5 border border-gray-100">
           {(t.userMgmt.pageLabel ?? "Page {page} of {total}")
             .replace("{page}", String(page))
             .replace("{total}", String(totalPages))}
-        </p>
+        </span>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
             disabled={page <= 1 || loading}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 disabled:opacity-40"
-        >
+            className="inline-flex items-center justify-center gap-2 min-w-[100px] px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-transparent border border-gray-200 bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600"
+          >
+            <ChevronLeft size={18} />
             {t.userMgmt.previous}
           </button>
           <button
             type="button"
             onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
             disabled={page >= totalPages || loading}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 disabled:opacity-40"
-        >
+            className="inline-flex items-center justify-center gap-2 min-w-[100px] px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-transparent border border-gray-200 bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600"
+          >
             {t.userMgmt.next}
+            <ChevronRight size={18} />
           </button>
         </div>
       </div>

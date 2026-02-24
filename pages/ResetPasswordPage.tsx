@@ -37,6 +37,7 @@ const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
           .matches(/[A-Z]/, "Password must include at least one uppercase letter.")
           .matches(/[a-z]/, "Password must include at least one lowercase letter.")
           .matches(/[0-9]/, "Password must include at least one number.")
+          .matches(/[^\w\s]/, "Password must include at least one special character.")
           .required("New password is required."),
         confirmPassword: Yup.string()
           .oneOf([Yup.ref("newPassword")], "Passwords do not match.")
@@ -73,14 +74,6 @@ const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
     if (!successMessage) return;
     setToastState({ open: true, type: "success", message: successMessage });
   }, [successMessage]);
-
-  useEffect(() => {
-    if (formik.submitCount < 1) return;
-    const entries = Object.entries(formik.errors);
-    if (entries.length === 0) return;
-    const firstError = String(entries[0][1]);
-    setToastState({ open: true, type: "error", message: firstError });
-  }, [formik.errors, formik.submitCount]);
 
   return (
     <>

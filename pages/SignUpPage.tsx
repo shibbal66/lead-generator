@@ -43,14 +43,25 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
     () =>
       Yup.object({
         fullName: Yup.string()
+          .trim()
+          .required("Full name is required.")
           .min(2, "Full name must be at least 2 characters.")
-          .required("Full name is required."),
+          .max(100, "Full name must be at most 100 characters.")
+          .test("two-parts", "Please enter your first and last name.", (value) => {
+            const parts = (value || "").trim().split(/\s+/).filter(Boolean);
+            return parts.length >= 2;
+          })
+          .matches(
+            /^[\p{L}\s\-']+$/u,
+            "Full name can only contain letters, spaces, hyphens and apostrophes."
+          ),
         email: Yup.string().email("Please enter a valid email address.").required("Email is required."),
         password: Yup.string()
           .min(8, "Password must be at least 8 characters.")
           .matches(/[A-Z]/, "Password must include at least one uppercase letter.")
           .matches(/[a-z]/, "Password must include at least one lowercase letter.")
           .matches(/[0-9]/, "Password must include at least one number.")
+          .matches(/[^\w\s]/, "Password must include at least one special character.")
           .required("Password is required.")
       }),
     []
@@ -72,6 +83,17 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
   useEffect(() => {
     if (!errorMessage) return;
     console.error("[SignUp] API error", errorMessage);
+    const isEmailValidation = /email.*(valid|required|invalid)|(valid|required|invalid).*email/i.test(errorMessage);
+    const isPasswordValidation =
+      /password|lowercase|uppercase|digit|special character|at least \d+ character/i.test(errorMessage);
+    if (isEmailValidation) {
+      formik.setFieldError("email", errorMessage);
+      return;
+    }
+    if (isPasswordValidation) {
+      formik.setFieldError("password", errorMessage);
+      return;
+    }
     setToastState({ open: true, type: "error", message: errorMessage });
   }, [errorMessage]);
 
@@ -85,15 +107,6 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
     if (!successMessage) return;
     setToastState({ open: true, type: "success", message: successMessage });
   }, [successMessage]);
-
-  useEffect(() => {
-    if (formik.submitCount < 1) return;
-    const entries = Object.entries(formik.errors);
-    if (entries.length === 0) return;
-    const firstError = String(entries[0][1]);
-    console.warn("[SignUp] validation errors", formik.errors);
-    setToastState({ open: true, type: "error", message: firstError });
-  }, [formik.errors, formik.submitCount]);
 
   return (
     <>

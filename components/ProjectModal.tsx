@@ -60,6 +60,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
         title: Yup.string()
           .trim()
           .required(lang === "de" ? "Projekttitel ist erforderlich" : "Project title is required")
+          .min(3, lang === "de" ? "Projekttitel muss mindestens 3 Zeichen haben" : "Project title must be at least 3 characters")
           .max(FORM_MAX_LENGTH.projectTitle, lang === "de" ? `Max. ${FORM_MAX_LENGTH.projectTitle} Zeichen` : `Max. ${FORM_MAX_LENGTH.projectTitle} characters`),
         projectManagerId: Yup.string()
           .trim()
@@ -141,7 +142,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
                 placeholder={t.myProjects.placeholder}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:border-gray-400 focus:ring-0 text-sm"
               />
               {formik.touched.title && formik.errors.title && (
                 <p className="mt-1 text-xs text-red-500">{formik.errors.title}</p>
@@ -161,7 +162,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                   value={formik.values.projectManagerId}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm appearance-none"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-gray-400 focus:ring-0 text-sm appearance-none"
                 >
                   <option value="" disabled>
                     {lang === "de" ? "Teammitglied wählen" : "Select team member"}
@@ -189,7 +190,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
                 placeholder={t.myProjects.descPlaceholder}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm min-h-[80px] resize-none"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:border-gray-400 focus:ring-0 text-sm min-h-[80px] resize-none"
               />
               {formik.touched.description && formik.errors.description && (
                 <p className="mt-1 text-xs text-red-500">{formik.errors.description}</p>
@@ -207,7 +208,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                   value={leadSearch}
                   onChange={(e) => setLeadSearch(e.target.value)}
                   placeholder={t.myProjects.searchLeads}
-                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border-none rounded-lg text-xs focus:ring-1 focus:ring-blue-500"
+                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-gray-400 focus:ring-0"
                 />
               </div>
               <div className="border border-gray-100 rounded-xl max-h-48 overflow-y-auto divide-y divide-gray-50 custom-scrollbar">

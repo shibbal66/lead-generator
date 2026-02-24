@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { FolderKanban, Users, Briefcase, Loader2, Calendar, User, Edit2, Trash2, X } from "lucide-react";
+import { FolderKanban, Users, Briefcase, Loader2, User, Edit2, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { translations, Language } from "../translations";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { getProjects, removeLeadFromProject } from "../store/actions/projectActions";
@@ -25,6 +25,10 @@ const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang, onEditP
   const [removingLeadId, setRemovingLeadId] = useState<string | null>(null);
 
   const t = useMemo(() => translations[lang], [lang]);
+  const sortedProjects = useMemo(
+    () => [...projects].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()),
+    [projects]
+  );
   const loading = projectsStatus === "loading" || leadsStatus === "loading";
   const totalPages = Math.max(1, Math.ceil(projectsTotal / (projectsLimit || limit)));
 
@@ -74,7 +78,7 @@ const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang, onEditP
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {projects.map((project) => {
+            {sortedProjects.map((project) => {
               const projectLeads = getLeadsForProject(project.id);
               const apiLeadCount = Number(project.leadCount ?? projectLeads.length);
               return (
@@ -107,12 +111,14 @@ const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang, onEditP
                           <Trash2 size={18} />
                         </button>
                       )}
+                      {/* Calendar icon and date display - removed per design
                       <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                         <Calendar size={18} />
                         {project.createdAt
                           ? new Date(project.createdAt).toLocaleDateString(lang === "de" ? "de-DE" : "en-US")
                           : "-"}
                       </div>
+                      */}
                     </div>
                   </div>
 
@@ -187,26 +193,28 @@ const MyProjectsDashboard: React.FC<MyProjectsDashboardProps> = ({ lang, onEditP
           </div>
         )}
       </div>
-      <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
-        <p className="text-xs font-semibold text-gray-500">
+      <div className="mt-8 flex items-center justify-between gap-4 py-4 px-5 rounded-2xl bg-white border border-gray-200 shadow-sm">
+        <span className="text-sm font-semibold text-gray-600 bg-gray-50 rounded-lg px-4 py-2.5 border border-gray-100">
           {t.common.pageLabel.replace("{page}", String(page)).replace("{total}", String(totalPages))}
-        </p>
+        </span>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
             disabled={page <= 1 || loading}
-            className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 disabled:opacity-40"
+            className="inline-flex items-center justify-center gap-2 min-w-[100px] px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-transparent border border-gray-200 bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600"
           >
+            <ChevronLeft size={18} />
             {t.common.previous}
           </button>
           <button
             type="button"
             onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
             disabled={page >= totalPages || loading}
-            className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 disabled:opacity-40"
+            className="inline-flex items-center justify-center gap-2 min-w-[100px] px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-transparent border border-gray-200 bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600"
           >
             {t.common.next}
+            <ChevronRight size={18} />
           </button>
         </div>
       </div>
