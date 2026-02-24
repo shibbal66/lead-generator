@@ -68,12 +68,6 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
     [apiInvitations, members]
   );
 
-  useEffect(() => {
-    console.log("[Team UI] members", members);
-    console.log("[Team UI] invitations", apiInvitations);
-    console.log("[Team UI] combined rows", rows);
-  }, [apiInvitations, members, rows]);
-
   const formatDate = (value?: string) => {
     if (!value) return "-";
     const date = new Date(value);
@@ -89,7 +83,6 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
 
   useEffect(() => {
     if (resolvedTeamId || !currentUserId) return;
-    console.log("[Team] resolving teamId from getUserById", { currentUserId });
     void dispatch(getUserById(currentUserId));
   }, [currentUserId, dispatch, resolvedTeamId]);
 
@@ -102,7 +95,6 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
     if (!resolvedTeamId) return;
     setError(null);
     const params = { teamId: resolvedTeamId, page, limit, search: search.trim() || undefined };
-    console.log("[Team] get members params", params);
     void dispatch(getTeamMembers(params));
   }, [dispatch, limit, page, resolvedTeamId, search]);
 
@@ -113,10 +105,8 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
   const handleDeleteUser = async (userId: string) => {
     setDeletingId(userId);
     setError(null);
-    console.log("[Team] delete member requested", { teamId: resolvedTeamId, userId });
     const action = await dispatch(deleteTeamMember({ userId }));
     if (deleteTeamMember.fulfilled.match(action)) {
-      console.log("[Team] delete member success", action.payload);
       setToastState({
         open: true,
         type: "success",
@@ -147,10 +137,8 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
     }
     setCancelingInvitationId(invitationId);
     setError(null);
-    console.log("[Team] cancel invitation requested", { invitationId });
     const action = await dispatch(cancelTeamInvitation(invitationId));
     if (cancelTeamInvitation.fulfilled.match(action)) {
-      console.log("[Team] cancel invitation success", action.payload);
       setToastState({
         open: true,
         type: "success",
@@ -185,7 +173,7 @@ const UserManagementDashboard: React.FC<UserManagementDashboardProps> = ({ lang 
         <input
           type="text"
           placeholder={t.userMgmt.searchPlaceholder}
-          className="w-full pl-12 pr-4 py-3 bg-white border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 transition-all"
+          className="w-full pl-12 pr-4 py-3 bg-white border border-blue-200 rounded-2xl shadow-sm outline-none focus:border-blue-500 focus:ring-0 transition-all"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />

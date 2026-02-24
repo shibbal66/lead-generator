@@ -43,6 +43,7 @@ export const translations = {
         dateTo: "Bis"
       },
       noData: "Keine Daten für die gewählten Filter verfügbar.",
+      noDataShort: "Keine Daten",
       dealsUnit: "Abschlüsse",
       leadsUnit: "Leads",
       unknownLead: "Unbekannt",
@@ -50,6 +51,7 @@ export const translations = {
     },
     header: {
       searchPlaceholder: "Suchen nach Name oder Position...",
+      clearSearch: "Suche löschen",
       allOwners: "Alle Betreuer",
       allProjects: "Alle Projekte",
       sortBy: "Sortieren:",
@@ -65,6 +67,7 @@ export const translations = {
     pipeline: {
       title: "Pipeline",
       total: "Gesamt",
+      noLeadsFound: "Keine Leads gefunden.",
       stages: {
         IDENTIFIED: "Lead identifiziert",
         CONTACTED: "Kontakt aufgenommen",
@@ -132,7 +135,9 @@ export const translations = {
       selectLead: "Lead auswählen",
       myself: "Mich selbst",
       linkedLead: "Verknüpft:",
-      assignedTo: "Verantwortlich:"
+      assignedTo: "Verantwortlich:",
+      showMore: "Mehr anzeigen",
+      showLess: "Weniger anzeigen"
     },
     myProjects: {
       title: "Meine Projekte",
@@ -258,6 +263,7 @@ export const translations = {
     leadDetail: {
       currentStatus: "Aktueller Status",
       lastUpdated: "Zuletzt aktualisiert",
+      createdAt: "Erstellt am",
       noProjectAssigned: "Kein Projekt zugeordnet",
       noLinkedTasks: "Keine verknüpften Aufgaben.",
       moreInfo: "Weitere Informationen",
@@ -330,6 +336,7 @@ export const translations = {
         dateTo: "To"
       },
       noData: "No data available for the selected filters.",
+      noDataShort: "No data",
       dealsUnit: "Deals",
       leadsUnit: "Leads",
       unknownLead: "Unknown",
@@ -337,6 +344,7 @@ export const translations = {
     },
     header: {
       searchPlaceholder: "Search for name or position...",
+      clearSearch: "Clear search",
       allOwners: "All Owners",
       allProjects: "All Projects",
       sortBy: "Sort by:",
@@ -352,6 +360,7 @@ export const translations = {
     pipeline: {
       title: "Pipeline",
       total: "Total",
+      noLeadsFound: "No leads found.",
       stages: {
         IDENTIFIED: "Lead identified",
         CONTACTED: "Contacted",
@@ -418,7 +427,9 @@ export const translations = {
       selectLead: "Select lead",
       myself: "Myself",
       linkedLead: "Linked:",
-      assignedTo: "Responsible:"
+      assignedTo: "Responsible:",
+      showMore: "Show more",
+      showLess: "Show less"
     },
     myProjects: {
       title: "My Projects",
@@ -544,6 +555,7 @@ export const translations = {
     leadDetail: {
       currentStatus: "Current Status",
       lastUpdated: "Last updated",
+      createdAt: "Created at",
       noProjectAssigned: "No project assigned",
       noLinkedTasks: "No linked tasks.",
       moreInfo: "More information",

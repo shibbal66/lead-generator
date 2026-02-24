@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { Lead, PipelineStage, SortField, SortOrder, LeadFile, Owner, Task, Todo, Project, UserSettings, Deal, DealType } from "./types";
+import {
+  Lead,
+  PipelineStage,
+  SortField,
+  SortOrder,
+  LeadFile,
+  Owner,
+  Task,
+  Todo,
+  Project,
+  UserSettings,
+  Deal,
+  DealType
+} from "./types";
 import { api } from "./services/api";
 import KanbanBoard from "./components/KanbanBoard";
 import LeadDetailDrawer from "./components/LeadDetailDrawer";
@@ -20,8 +33,7 @@ import TrashModal from "./components/TrashModal";
 import ConfirmDeleteModal from "./components/ConfirmDeleteModal";
 import Toast from "./components/Toast";
 import { translations, Language } from "./translations";
-import
-{
+import {
   Plus,
   Menu,
   X,
@@ -46,8 +58,7 @@ import
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { logout } from "./store/actions/authActions";
-import
-{
+import {
   createLead as createLeadAction,
   getDeletedLeads as getDeletedLeadsAction,
   getLeadById as getLeadByIdAction,
@@ -59,8 +70,7 @@ import
 } from "./store/actions/leadActions";
 import { getUsers, updateUser } from "./store/actions/userActions";
 import { createDeal as createDealApiAction } from "./store/actions/dealActions";
-import
-{
+import {
   addLeadsToProject as addLeadsToProjectAction,
   createProject as createProjectApiAction,
   deleteProject as deleteProjectAction,
@@ -71,8 +81,7 @@ import
 } from "./store/actions/projectActions";
 import { CreateProjectPayload, type ProjectRecord } from "./store/slices/projectSlice";
 import type { LeadRecord } from "./store/slices/leadSlice";
-import
-{
+import {
   createComment as createCommentAction,
   deleteComment as deleteCommentAction,
   updateComment as updateCommentAction
@@ -81,22 +90,29 @@ import { exportLeadsCsv } from "./store/actions/dashboardActions";
 import { leadApi } from "./services/leadApi";
 import { subscribeForegroundMessages } from "./services/fcm";
 
+type ViewType = "pipeline" | "analytics" | "todos" | "sent_tasks" | "my_projects" | "settings" | "user_mgmt";
 
-type ViewType =
-  | "pipeline"
-  | "analytics"
-  | "todos"
-  | "sent_tasks"
-  | "my_projects"
-  | "settings"
-  | "user_mgmt";
+const APP_VIEW_STORAGE_KEY = "leadgen_app_view";
+const VIEW_TYPES: ViewType[] = ["pipeline", "analytics", "todos", "sent_tasks", "my_projects", "settings", "user_mgmt"];
+const viewFromStorage = (): ViewType => {
+  try {
+    const v = localStorage.getItem(APP_VIEW_STORAGE_KEY);
+    return VIEW_TYPES.includes(v as ViewType) ? (v as ViewType) : "pipeline";
+  } catch {
+    return "pipeline";
+  }
+};
 
-const App: React.FC = () =>
-{
+const App: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const hasBootstrappedRef = useRef(false);
-  const [activeView, setActiveView] = useState<ViewType>("pipeline");
+  const [activeView, setActiveView] = useState<ViewType>(viewFromStorage);
+
+  useEffect(() => {
+    if (window.location.search) navigate("/app", { replace: true });
+  }, [navigate]);
+
   const [leads, setLeads] = useState<Lead[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -113,7 +129,7 @@ const App: React.FC = () =>
   const [editingProjectLeadIds, setEditingProjectLeadIds] = useState<string[] | null>(null);
   const [projectDeleteConfirm, setProjectDeleteConfirm] = useState<ProjectRecord | null>(null);
   const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
-  const [toastState, setToastState] = useState<{ open: boolean; type: "success" | "error" | "info"; message: string; }>({
+  const [toastState, setToastState] = useState<{ open: boolean; type: "success" | "error" | "info"; message: string }>({
     open: false,
     type: "info",
     message: ""
@@ -140,8 +156,7 @@ const App: React.FC = () =>
   const currentLang = useMemo(() => userSettings?.language || "de", [userSettings]);
   const t = useMemo(() => translations[currentLang], [currentLang]);
 
-  const mapStatusToPipeline = (status?: string): PipelineStage =>
-  {
+  const mapStatusToPipeline = (status?: string): PipelineStage => {
     if (status === "DELETED") return PipelineStage.TRASH;
     if (status === "CONTACTED") return PipelineStage.CONTACTED;
     if (status === "QUALIFIED") return PipelineStage.QUALIFIED;
@@ -151,8 +166,7 @@ const App: React.FC = () =>
   };
 
   const mapLeadRecordToUi = useCallback(
-    (record: LeadRecord): Lead =>
-    {
+    (record: LeadRecord): Lead => {
       const notFoundText = currentLang === "de" ? "Nicht gefunden" : "Not found";
       const commentCount =
         typeof record.commentCount === "number"
@@ -193,10 +207,9 @@ const App: React.FC = () =>
     [deletedLeadsRecords, mapLeadRecordToUi]
   );
 
-  const refreshActiveLeads = useCallback(() =>
-  {
+  const refreshActiveLeads = useCallback(() => {
     if (activeView !== "pipeline") return;
-    const ownerId = ownerFilter === "All" ? undefined : users.find((user) => user.name === ownerFilter)?.id;
+    const ownerId = ownerFilter === "All" ? undefined : ownerFilter;
     const params = {
       search: search.trim() || undefined,
       ownerId,
@@ -208,28 +221,23 @@ const App: React.FC = () =>
     dispatch(getLeadsAction(params));
   }, [activeView, dispatch, ownerFilter, projectFilter, search, sortField, users]);
 
-  const fetchDeletedLeads = useCallback(async () =>
-  {
+  const fetchDeletedLeads = useCallback(async () => {
     await dispatch(getDeletedLeadsAction());
   }, [dispatch]);
 
-  const fetchLeadIdsForProject = useCallback(async (projectId: string) =>
-  {
+  const fetchLeadIdsForProject = useCallback(async (projectId: string) => {
     const limit = 200;
     let page = 1;
     const ids: string[] = [];
     const seen = new Set<string>();
 
-    while (true)
-    {
+    while (true) {
       const response = await leadApi.getLeads({ projectId, page, limit });
       const batch = response.leads || [];
       const beforeAddCount = ids.length;
 
-      for (const lead of batch)
-      {
-        if (!seen.has(lead.id))
-        {
+      for (const lead of batch) {
+        if (!seen.has(lead.id)) {
           seen.add(lead.id);
           ids.push(lead.id);
         }
@@ -246,8 +254,7 @@ const App: React.FC = () =>
     return ids;
   }, []);
 
-  useEffect(() =>
-  {
+  useEffect(() => {
     if (hasBootstrappedRef.current) return;
     hasBootstrappedRef.current = true;
 
@@ -257,50 +264,41 @@ const App: React.FC = () =>
     fetchDeletedLeads();
   }, [dispatch, fetchDeletedLeads]);
 
-  useEffect(() =>
-  {
+  useEffect(() => {
     refreshActiveLeads();
   }, [refreshActiveLeads]);
 
-  useEffect(() =>
-  {
+  useEffect(() => {
     if (!isModalOpen) return;
     dispatch(getUsers({ page: 1, limit: 100 }));
   }, [dispatch, isModalOpen]);
 
-  useEffect(() =>
-  {
+  useEffect(() => {
     if (!isProjectModalOpen) return;
     dispatch(getUsers({ page: 1, limit: 200 }));
   }, [dispatch, isProjectModalOpen]);
 
-  useEffect(() =>
-  {
+  useEffect(() => {
     if (!closingLead) return;
     dispatch(getUsers({ page: 1, limit: 200 }));
   }, [closingLead, dispatch]);
 
-  useEffect(() =>
-  {
+  useEffect(() => {
     setLeads(leadRecords.map(mapLeadRecordToUi));
   }, [leadRecords, mapLeadRecordToUi]);
 
-  useEffect(() =>
-  {
+  useEffect(() => {
     if (!authUser) return;
     let unsubscribe: (() => void) | undefined;
-    void subscribeForegroundMessages((payload) =>
-    {
+    void subscribeForegroundMessages((payload) => {
       const title = payload.notification?.title;
       const body = payload.notification?.body;
       const message = [title, body].filter(Boolean).join(" – ") || "New notification";
       setToastState({ open: true, type: "info", message });
-    }).then((fn) =>
-    {
+    }).then((fn) => {
       unsubscribe = fn;
     });
-    return () =>
-    {
+    return () => {
       unsubscribe?.();
     };
   }, [authUser]);
@@ -326,8 +324,7 @@ const App: React.FC = () =>
         comments?: unknown[];
       },
       fallback?: Lead
-    ): Lead =>
-    {
+    ): Lead => {
       const notFoundText = currentLang === "de" ? "Nicht gefunden" : "Not found";
       const ownerName = users.find((user) => user.id === record.ownerId)?.name || fallback?.ownerName || notFoundText;
       return {
@@ -365,8 +362,7 @@ const App: React.FC = () =>
   );
 
   const mapApiCommentToUi = useCallback(
-    (comment: { id: string; leadId: string; userId: string; text: string; createdAt?: string; date?: string; }) =>
-    {
+    (comment: { id: string; leadId: string; userId: string; text: string; createdAt?: string; date?: string }) => {
       const authorName = users.find((user) => user.id === comment.userId)?.name || authUser?.name || "Unknown";
       return {
         id: comment.id,
@@ -379,11 +375,9 @@ const App: React.FC = () =>
     [authUser?.name, users]
   );
 
-  const fetchData = async () =>
-  {
+  const fetchData = async () => {
     setLoading(true);
-    try
-    {
+    try {
       const [ownersData, todosData, tasksData, projectsData, settingsData, dealsData] = await Promise.all([
         api.getOwners(),
         api.getTodos(),
@@ -398,40 +392,35 @@ const App: React.FC = () =>
       setProjects(projectsData);
       setUserSettings(settingsData);
       setDeals(dealsData);
-    } catch {} finally
-    {
+    } catch {
+    } finally {
       setLoading(false);
     }
   };
 
-  const uniqueOwners = useMemo(() =>
-  {
-    return Array.from(new Set(users.map((u) => u.name))).sort();
+  const ownerOptions = useMemo(() => {
+    return [...users].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }, [users]);
 
-  const projectOptions = useMemo(() =>
-  {
+  const projectOptions = useMemo(() => {
     return projectRecords.map((project) => ({
       id: project.id,
       title: project.title,
       description: project.description || "",
-      managerName:
-        project.projectManagerName || users.find((user) => user.id === project.projectManagerId)?.name || "",
+      managerName: project.projectManagerName || users.find((user) => user.id === project.projectManagerId)?.name || "",
       createdAt: project.createdAt || ""
     }));
   }, [projectRecords, users]);
 
   const trashedLeadsCount = useMemo(() => deletedLeads.length, [deletedLeads]);
 
-  const handleExport = useCallback(async () =>
-  {
+  const handleExport = useCallback(async () => {
     const params = {
-      ownerId: ownerFilter === "All" ? undefined : users.find((user) => user.name === ownerFilter)?.id,
+      ownerId: ownerFilter === "All" ? undefined : ownerFilter,
       projectId: projectFilter === "All" ? undefined : projectFilter
     };
     const result = await dispatch(exportLeadsCsv(params));
-    if (!exportLeadsCsv.fulfilled.match(result))
-    {
+    if (!exportLeadsCsv.fulfilled.match(result)) {
       setToastState({
         open: true,
         type: "error",
@@ -447,7 +436,7 @@ const App: React.FC = () =>
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `leads_export_${ new Date().toISOString().slice(0, 10) }.csv`;
+    anchor.download = `leads_export_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
@@ -460,14 +449,13 @@ const App: React.FC = () =>
     });
   }, [currentLang, dispatch, ownerFilter, projectFilter, users]);
 
-  const handleSaveDeal = async (dealData: DealModalSubmitPayload) =>
-  {
+  const handleSaveDeal = async (dealData: DealModalSubmitPayload) => {
     const currency = dealData.currency === "USD" ? "DOLLAR" : "EURO";
     const payload = {
       name: dealData.name,
       leadId: dealData.leadId,
       ownerId: dealData.ownerId,
-      projectId: dealData.projectId,
+      projectId: dealData.projectId?.trim() || undefined,
       dealType: dealData.dealType,
       currency,
       totalAmount: dealData.totalAmount,
@@ -476,11 +464,9 @@ const App: React.FC = () =>
       description: dealData.description
     };
 
-    try
-    {
+    try {
       const result = await dispatch(createDealApiAction(payload));
-      if (!createDealApiAction.fulfilled.match(result))
-      {
+      if (!createDealApiAction.fulfilled.match(result)) {
         setToastState({
           open: true,
           type: "error",
@@ -492,8 +478,7 @@ const App: React.FC = () =>
       }
 
       const created = result.payload.deal;
-      const mapDealTypeToLocal = (value?: string): DealType =>
-      {
+      const mapDealTypeToLocal = (value?: string): DealType => {
         if (value === "ONLINE_TRADING") return DealType.ONLINE_TRAINING;
         if (value === "OFF_SITE") return DealType.OFFSITE;
         return DealType.CONSULTING;
@@ -513,33 +498,32 @@ const App: React.FC = () =>
       };
       setDeals((prev) => [localDeal, ...prev]);
       setClosingLead(null);
-    } catch (error)
-    {
+    } catch (error) {
       setToastState({
         open: true,
         type: "error",
-        message: error instanceof Error ? error.message : currentLang === "de" ? "Abschluss konnte nicht erstellt werden." : "Failed to create deal."
+        message:
+          error instanceof Error
+            ? error.message
+            : currentLang === "de"
+              ? "Abschluss konnte nicht erstellt werden."
+              : "Failed to create deal."
       });
     }
   };
 
-  const handleAssignTask = async (text: string, deadline?: string) =>
-  {
+  const handleAssignTask = async (text: string, deadline?: string) => {
     if (!taskingOwner) return;
-    try
-    {
+    try {
       await api.assignTask(taskingOwner.id, "M. Nutzer", text, deadline);
       fetchData();
     } catch {}
   };
 
-  const handleCreateProject = async (projectPayload: CreateProjectPayload) =>
-  {
-    try
-    {
+  const handleCreateProject = async (projectPayload: CreateProjectPayload) => {
+    try {
       const result = await dispatch(createProjectApiAction(projectPayload));
-      if (!createProjectApiAction.fulfilled.match(result))
-      {
+      if (!createProjectApiAction.fulfilled.match(result)) {
         setToastState({
           open: true,
           type: "error",
@@ -550,7 +534,8 @@ const App: React.FC = () =>
         return;
       }
       const created = result.payload.project;
-      const managerName = users.find((user) => user.id === created.projectManagerId)?.name || created.projectManagerName || "";
+      const managerName =
+        users.find((user) => user.id === created.projectManagerId)?.name || created.projectManagerName || "";
       const localProject: Project = {
         id: created.id,
         title: created.title,
@@ -562,45 +547,47 @@ const App: React.FC = () =>
       setToastState({
         open: true,
         type: "success",
-        message: result.payload.message || (currentLang === "de" ? "Projekt erfolgreich erstellt." : "Project created successfully.")
+        message:
+          result.payload.message ||
+          (currentLang === "de" ? "Projekt erfolgreich erstellt." : "Project created successfully.")
       });
       setIsProjectModalOpen(false);
-    } catch (error)
-    {
+    } catch (error) {
       setToastState({
         open: true,
         type: "error",
-        message: error instanceof Error ? error.message : currentLang === "de" ? "Projekt konnte nicht erstellt werden." : "Failed to create project."
+        message:
+          error instanceof Error
+            ? error.message
+            : currentLang === "de"
+              ? "Projekt konnte nicht erstellt werden."
+              : "Failed to create project."
       });
     }
   };
 
   const handleUpdateProject = async (
     projectId: string,
-    data: { title: string; description?: string | null; projectManagerId: string; },
-    leadDiff?: { leadIdsToAdd: string[]; leadIdsToRemove: string[]; }
-  ) =>
-  {
-    try
-    {
+    data: { title: string; description?: string | null; projectManagerId: string },
+    leadDiff?: { leadIdsToAdd: string[]; leadIdsToRemove: string[] }
+  ) => {
+    try {
       const result = await dispatch(updateProjectAction({ projectId, data }));
-      if (!updateProjectAction.fulfilled.match(result))
-      {
+      if (!updateProjectAction.fulfilled.match(result)) {
         setToastState({
           open: true,
           type: "error",
-          message: (result.payload as string) || (currentLang === "de" ? "Projekt konnte nicht aktualisiert werden." : "Failed to update project.")
+          message:
+            (result.payload as string) ||
+            (currentLang === "de" ? "Projekt konnte nicht aktualisiert werden." : "Failed to update project.")
         });
         return;
       }
-      if (leadDiff)
-      {
-        if (leadDiff.leadIdsToAdd.length > 0)
-        {
+      if (leadDiff) {
+        if (leadDiff.leadIdsToAdd.length > 0) {
           await dispatch(addLeadsToProjectAction({ projectId, leadIds: leadDiff.leadIdsToAdd }));
         }
-        for (const leadId of leadDiff.leadIdsToRemove)
-        {
+        for (const leadId of leadDiff.leadIdsToRemove) {
           await dispatch(removeLeadFromProjectAction({ projectId, leadId }));
         }
         void dispatch(getLeadsAction({ page: 1, limit: 500 }));
@@ -614,77 +601,79 @@ const App: React.FC = () =>
       setEditingProjectLeadIds(null);
       setIsProjectModalOpen(false);
       void dispatch(getProjectsAction({ page: projectsPage, limit: projectsLimit }));
-    } catch (error)
-    {
+    } catch (error) {
       setToastState({
         open: true,
         type: "error",
-        message: error instanceof Error ? error.message : currentLang === "de" ? "Projekt konnte nicht aktualisiert werden." : "Failed to update project."
+        message:
+          error instanceof Error
+            ? error.message
+            : currentLang === "de"
+              ? "Projekt konnte nicht aktualisiert werden."
+              : "Failed to update project."
       });
     }
   };
 
-  const handleDeleteProjectConfirm = useCallback(async () =>
-  {
+  const handleDeleteProjectConfirm = useCallback(async () => {
     if (!projectDeleteConfirm) return;
     const id = projectDeleteConfirm.id;
-    try
-    {
+    try {
       const result = await dispatch(deleteProjectAction(id));
-      if (deleteProjectAction.fulfilled.match(result))
-      {
+      if (deleteProjectAction.fulfilled.match(result)) {
         setToastState({
           open: true,
           type: "success",
           message: result.payload?.message ?? (currentLang === "de" ? "Projekt gelöscht." : "Project deleted.")
         });
-      } else
-      {
+      } else {
         setToastState({
           open: true,
           type: "error",
-          message: (result.payload as string) ?? (currentLang === "de" ? "Projekt konnte nicht gelöscht werden." : "Failed to delete project.")
+          message:
+            (result.payload as string) ??
+            (currentLang === "de" ? "Projekt konnte nicht gelöscht werden." : "Failed to delete project.")
         });
       }
-    } catch (error)
-    {
+    } catch (error) {
       setToastState({
         open: true,
         type: "error",
-        message: error instanceof Error ? error.message : currentLang === "de" ? "Projekt konnte nicht gelöscht werden." : "Failed to delete project."
+        message:
+          error instanceof Error
+            ? error.message
+            : currentLang === "de"
+              ? "Projekt konnte nicht gelöscht werden."
+              : "Failed to delete project."
       });
     }
     setProjectDeleteConfirm(null);
   }, [dispatch, projectDeleteConfirm, currentLang]);
 
-  const handleDeleteLead = useCallback(async (id: string) =>
-  {
-    try
-    {
-      const result = await dispatch(softDeleteLeadAction(id));
-      if (softDeleteLeadAction.fulfilled.match(result))
-      {
-        setLeads((prev) => prev.filter((lead) => lead.id !== id));
-        setSelectedLead((prev) => (prev?.id === id ? null : prev));
-        await fetchDeletedLeads();
-      }
-    } catch {}
-  }, [dispatch, fetchDeletedLeads]);
+  const handleDeleteLead = useCallback(
+    async (id: string) => {
+      try {
+        const result = await dispatch(softDeleteLeadAction(id));
+        if (softDeleteLeadAction.fulfilled.match(result)) {
+          setLeads((prev) => prev.filter((lead) => lead.id !== id));
+          setSelectedLead((prev) => (prev?.id === id ? null : prev));
+          await fetchDeletedLeads();
+        }
+      } catch {}
+    },
+    [dispatch, fetchDeletedLeads]
+  );
 
-  const handleOpenTrashModal = useCallback(async () =>
-  {
+  const handleOpenTrashModal = useCallback(async () => {
     setIsTrashModalOpen(true);
     await fetchDeletedLeads();
   }, [fetchDeletedLeads]);
 
   const handleRestoreDeletedLead = useCallback(
-    async (id: string) =>
-    {
-      try
-      {
+    async (id: string) => {
+      try {
         const result = await dispatch(restoreLeadAction(id));
-        if (!restoreLeadAction.fulfilled.match(result))
-        {
+        if (!restoreLeadAction.fulfilled.match(result)) {
           return;
         }
         await Promise.all([fetchDeletedLeads(), Promise.resolve(refreshActiveLeads())]);
@@ -694,25 +683,25 @@ const App: React.FC = () =>
   );
 
   const handlePermanentDeleteDeletedLead = useCallback(
-    async (id: string) =>
-    {
-      try
-      {
+    async (id: string) => {
+      try {
         const result = await dispatch(hardDeleteLeadAction(id));
-        if (hardDeleteLeadAction.fulfilled.match(result))
-        {
+        if (hardDeleteLeadAction.fulfilled.match(result)) {
           setToastState({
             open: true,
             type: "success",
-            message: result.payload?.message ?? (currentLang === "de" ? "Lead endgültig gelöscht." : "Lead permanently deleted.")
+            message:
+              result.payload?.message ??
+              (currentLang === "de" ? "Lead endgültig gelöscht." : "Lead permanently deleted.")
           });
           await fetchDeletedLeads();
-        } else
-        {
+        } else {
           setToastState({
             open: true,
             type: "error",
-            message: (result.payload as string) ?? (currentLang === "de" ? "Lead konnte nicht gelöscht werden." : "Failed to permanently delete lead.")
+            message:
+              (result.payload as string) ??
+              (currentLang === "de" ? "Lead konnte nicht gelöscht werden." : "Failed to permanently delete lead.")
           });
         }
       } catch {}
@@ -721,16 +710,15 @@ const App: React.FC = () =>
   );
 
   const handleLeadClick = useCallback(
-    async (lead: Lead) =>
-    {
-      try
-      {
+    async (lead: Lead) => {
+      try {
         const result = await dispatch(getLeadByIdAction(lead.id));
-        if (getLeadByIdAction.fulfilled.match(result))
-        {
+        if (getLeadByIdAction.fulfilled.match(result)) {
           const detailedLead = buildUiLeadFromRecord(result.payload.lead, lead);
           detailedLead.ownerName =
-            result.payload.owner?.name || users.find((user) => user.id === result.payload.lead.ownerId)?.name || detailedLead.ownerName;
+            result.payload.owner?.name ||
+            users.find((user) => user.id === result.payload.lead.ownerId)?.name ||
+            detailedLead.ownerName;
           detailedLead.availableProjects = (result.payload.projects || []).map((project) => ({
             id: project.id,
             title: project.title,
@@ -777,26 +765,21 @@ const App: React.FC = () =>
     [buildUiLeadFromRecord, dispatch, mapApiCommentToUi]
   );
 
-  const handleDragEnd = (event: DragEndEvent) =>
-  {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
     const leadId = active.id as string;
-    if (over.id === "trash")
-    {
+    if (over.id === "trash") {
       const lead = leads.find((l) => l.id === leadId);
       if (lead && window.confirm(t.trash.confirmMove)) handleDeleteLead(leadId);
-    } else
-    {
+    } else {
       const newStage = over.id as PipelineStage;
       handleMoveLead(leadId, newStage);
     }
   };
 
-  const handleMoveLead = async (leadId: string, newStage: PipelineStage) =>
-  {
-    try
-    {
+  const handleMoveLead = async (leadId: string, newStage: PipelineStage) => {
+    try {
       const leadBeforeUpdate = leads.find((l) => l.id === leadId);
       let movedLead: Lead | null = null;
       const statusMap: Record<PipelineStage, string> = {
@@ -814,30 +797,25 @@ const App: React.FC = () =>
         }
       };
       const result = await dispatch(updateLeadAction(payload));
-      if (updateLeadAction.fulfilled.match(result))
-      {
+      if (updateLeadAction.fulfilled.match(result)) {
         const fallbackLead = leads.find((l) => l.id === leadId);
         const updatedLead = buildUiLeadFromRecord(result.payload.lead, fallbackLead || undefined);
         movedLead = updatedLead;
         setLeads((prev) => prev.map((l) => (l.id === leadId ? updatedLead : l)));
         setSelectedLead((prev) => (prev?.id === leadId ? updatedLead : prev));
-      } else
-      {
+      } else {
         return;
       }
-      if (newStage === PipelineStage.CLOSED && leadBeforeUpdate?.pipelineStage !== PipelineStage.CLOSED)
-      {
+      if (newStage === PipelineStage.CLOSED && leadBeforeUpdate?.pipelineStage !== PipelineStage.CLOSED) {
         setClosingLead(movedLead || leadBeforeUpdate || null);
       }
     } catch {}
   };
 
-  const handleUpdateLead = async (updates: Partial<Lead>) =>
-  {
+  const handleUpdateLead = async (updates: Partial<Lead>) => {
     if (!selectedLead) return;
     const notFoundTokens = new Set(["Not found", "Nicht gefunden"]);
-    const clean = (value?: string): string | undefined =>
-    {
+    const clean = (value?: string): string | undefined => {
       if (!value) return undefined;
       const trimmed = value.trim();
       if (!trimmed || notFoundTokens.has(trimmed)) return undefined;
@@ -877,16 +855,13 @@ const App: React.FC = () =>
       }
     };
 
-    if (Object.keys(payload.data.socialLinks).length === 0)
-    {
+    if (Object.keys(payload.data.socialLinks).length === 0) {
       delete payload.data.socialLinks;
     }
 
-    try
-    {
+    try {
       const result = await dispatch(updateLeadAction(payload));
-      if (updateLeadAction.fulfilled.match(result))
-      {
+      if (updateLeadAction.fulfilled.match(result)) {
         const updatedLead = buildUiLeadFromRecord(result.payload.lead, mergedLead);
         setLeads((prev) => prev.map((lead) => (lead.id === selectedLead.id ? updatedLead : lead)));
         setSelectedLead(updatedLead);
@@ -894,15 +869,12 @@ const App: React.FC = () =>
     } catch {}
   };
 
-  const handleAddComment = async (text: string) =>
-  {
+  const handleAddComment = async (text: string) => {
     if (!selectedLead) return;
-    if (!authUser?.userId)
-    {
+    if (!authUser?.userId) {
       return;
     }
-    try
-    {
+    try {
       const result = await dispatch(
         createCommentAction({
           userId: authUser.userId,
@@ -910,8 +882,7 @@ const App: React.FC = () =>
           text: text.trim()
         })
       );
-      if (!createCommentAction.fulfilled.match(result))
-      {
+      if (!createCommentAction.fulfilled.match(result)) {
         return;
       }
 
@@ -920,33 +891,31 @@ const App: React.FC = () =>
         prev.map((lead) =>
           lead.id === selectedLead.id
             ? {
-              ...lead,
-              comments: [...lead.comments, newComment],
-              commentCount: (lead.commentCount ?? lead.comments.length) + 1
-            }
+                ...lead,
+                comments: [...lead.comments, newComment],
+                commentCount: (lead.commentCount ?? lead.comments.length) + 1
+              }
             : lead
         )
       );
       setSelectedLead((prev) =>
         prev
           ? {
-            ...prev,
-            comments: [...prev.comments, newComment],
-            commentCount: (prev.commentCount ?? prev.comments.length) + 1
-          }
+              ...prev,
+              comments: [...prev.comments, newComment],
+              commentCount: (prev.commentCount ?? prev.comments.length) + 1
+            }
           : null
       );
     } catch {}
   };
 
-  const handleUpdateComment = async (commentId: string, text: string) =>
-  {
+  const handleUpdateComment = async (commentId: string, text: string) => {
     if (!selectedLead) return;
     const trimmedText = text.trim();
     if (!trimmedText) return;
 
-    try
-    {
+    try {
       const result = await dispatch(
         updateCommentAction({
           commentId,
@@ -954,8 +923,7 @@ const App: React.FC = () =>
         })
       );
 
-      if (!updateCommentAction.fulfilled.match(result))
-      {
+      if (!updateCommentAction.fulfilled.match(result)) {
         setToastState({
           open: true,
           type: "error",
@@ -971,18 +939,18 @@ const App: React.FC = () =>
         prev.map((lead) =>
           lead.id === selectedLead.id
             ? {
-              ...lead,
-              comments: lead.comments.map((comment) => (comment.id === commentId ? updatedComment : comment))
-            }
+                ...lead,
+                comments: lead.comments.map((comment) => (comment.id === commentId ? updatedComment : comment))
+              }
             : lead
         )
       );
       setSelectedLead((prev) =>
         prev
           ? {
-            ...prev,
-            comments: prev.comments.map((comment) => (comment.id === commentId ? updatedComment : comment))
-          }
+              ...prev,
+              comments: prev.comments.map((comment) => (comment.id === commentId ? updatedComment : comment))
+            }
           : null
       );
       setToastState({
@@ -990,30 +958,31 @@ const App: React.FC = () =>
         type: "success",
         message: currentLang === "de" ? "Kommentar aktualisiert." : "Comment updated successfully."
       });
-    } catch (error)
-    {
+    } catch (error) {
       setToastState({
         open: true,
         type: "error",
-        message: error instanceof Error ? error.message : currentLang === "de" ? "Kommentar konnte nicht aktualisiert werden." : "Failed to update comment."
+        message:
+          error instanceof Error
+            ? error.message
+            : currentLang === "de"
+              ? "Kommentar konnte nicht aktualisiert werden."
+              : "Failed to update comment."
       });
     }
   };
 
-  const handleDeleteComment = async (commentId: string) =>
-  {
+  const handleDeleteComment = async (commentId: string) => {
     if (!selectedLead) return;
 
-    try
-    {
+    try {
       const result = await dispatch(
         deleteCommentAction({
           commentId
         })
       );
 
-      if (!deleteCommentAction.fulfilled.match(result))
-      {
+      if (!deleteCommentAction.fulfilled.match(result)) {
         setToastState({
           open: true,
           type: "error",
@@ -1028,20 +997,20 @@ const App: React.FC = () =>
         prev.map((lead) =>
           lead.id === selectedLead.id
             ? {
-              ...lead,
-              comments: lead.comments.filter((comment) => comment.id !== commentId),
-              commentCount: Math.max((lead.commentCount ?? lead.comments.length) - 1, 0)
-            }
+                ...lead,
+                comments: lead.comments.filter((comment) => comment.id !== commentId),
+                commentCount: Math.max((lead.commentCount ?? lead.comments.length) - 1, 0)
+              }
             : lead
         )
       );
       setSelectedLead((prev) =>
         prev
           ? {
-            ...prev,
-            comments: prev.comments.filter((comment) => comment.id !== commentId),
-            commentCount: Math.max((prev.commentCount ?? prev.comments.length) - 1, 0)
-          }
+              ...prev,
+              comments: prev.comments.filter((comment) => comment.id !== commentId),
+              commentCount: Math.max((prev.commentCount ?? prev.comments.length) - 1, 0)
+            }
           : null
       );
       setToastState({
@@ -1049,20 +1018,22 @@ const App: React.FC = () =>
         type: "success",
         message: currentLang === "de" ? "Kommentar gelöscht." : "Comment deleted successfully."
       });
-    } catch (error)
-    {
+    } catch (error) {
       setToastState({
         open: true,
         type: "error",
-        message: error instanceof Error ? error.message : currentLang === "de" ? "Kommentar konnte nicht gelöscht werden." : "Failed to delete comment."
+        message:
+          error instanceof Error
+            ? error.message
+            : currentLang === "de"
+              ? "Kommentar konnte nicht gelöscht werden."
+              : "Failed to delete comment."
       });
     }
   };
 
-  const handleCreateLead = async (leadData: Partial<Lead>) =>
-  {
-    try
-    {
+  const handleCreateLead = async (leadData: Partial<Lead>) => {
+    try {
       const owner = users.find((u) => u.name === leadData.ownerName);
       const statusMap: Record<PipelineStage, string> = {
         [PipelineStage.IDENTIFIED]: "IDENTIFIED",
@@ -1088,252 +1059,252 @@ const App: React.FC = () =>
 
       const result = await dispatch(createLeadAction(payload));
 
-      if (createLeadAction.fulfilled.match(result))
-      {
+      if (createLeadAction.fulfilled.match(result)) {
         setCreateLeadError(null);
         setToastState({
           open: true,
           type: "success",
-          message: result.payload.message || (currentLang === "de" ? "Lead erfolgreich erstellt." : "Lead created successfully.")
+          message:
+            result.payload.message ||
+            (currentLang === "de" ? "Lead erfolgreich erstellt." : "Lead created successfully.")
         });
-        const created = result.payload.lead;
-        const mapStatusToPipeline = (status?: string): PipelineStage =>
-        {
-          if (status === "CONTACTED") return PipelineStage.CONTACTED;
-          if (status === "QUALIFIED") return PipelineStage.QUALIFIED;
-          if (status === "NEGOTIATION") return PipelineStage.NEGOTIATION;
-          if (status === "CLOSED") return PipelineStage.CLOSED;
-          return PipelineStage.IDENTIFIED;
-        };
-
-        const localLead: Lead = {
-          id: created.id,
-          firstName: created.firstName || payload.firstName,
-          lastName: created.lastName || payload.lastName,
-          currentPosition: created.position || payload.position,
-          company: created.company || payload.company,
-          linkedinUrl: created.socialLinks?.linkedin || leadData.linkedinUrl || "",
-          ownerName: owner?.name || leadData.ownerName || "",
-          phone: created.phone || payload.phone,
-          email: created.email || payload.email,
-          birthday: created.birthday || payload.birthday,
-          pipelineStage: mapStatusToPipeline(created.status),
-          createdAt: created.createdAt || new Date().toISOString(),
-          updatedAt: created.updatedAt || new Date().toISOString(),
-          comments: [],
-          files: []
-        };
-
-        setLeads((prev) => [localLead, ...prev]);
         setIsModalOpen(false);
-      } else
-      {
+        const ownerId = ownerFilter === "All" ? undefined : ownerFilter;
+        dispatch(
+          getLeadsAction({
+            search: search.trim() || undefined,
+            ownerId,
+            projectId: projectFilter === "All" ? undefined : projectFilter,
+            orderBy: sortField,
+            page: 1,
+            limit: 200
+          })
+        );
+      } else {
         setCreateLeadError(
-          (result.payload as string) || (currentLang === "de" ? "Lead konnte nicht erstellt werden." : "Failed to create lead.")
+          (result.payload as string) ||
+            (currentLang === "de" ? "Lead konnte nicht erstellt werden." : "Failed to create lead.")
         );
       }
-    } catch (error)
-    {
+    } catch (error) {
       setCreateLeadError(
-        error instanceof Error ? error.message : currentLang === "de" ? "Lead konnte nicht erstellt werden." : "Failed to create lead."
+        error instanceof Error
+          ? error.message
+          : currentLang === "de"
+            ? "Lead konnte nicht erstellt werden."
+            : "Failed to create lead."
       );
     }
   };
 
-  const filteredLeads = useMemo(() =>
-  {
+  const selectedOwnerName = ownerFilter === "All" ? undefined : users.find((u) => u.id === ownerFilter)?.name;
+  const filteredLeads = useMemo(() => {
     return leads
-      .filter((l) =>
-      {
+      .filter((l) => {
         if (l.pipelineStage === PipelineStage.TRASH) return false;
         const matchesSearch =
-          `${ l.firstName } ${ l.lastName }`.toLowerCase().includes(search.toLowerCase()) ||
+          `${l.firstName} ${l.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
           l.currentPosition.toLowerCase().includes(search.toLowerCase());
-        const matchesOwner = ownerFilter === "All" || l.ownerName === ownerFilter;
+        const matchesOwner = ownerFilter === "All" || (selectedOwnerName != null && l.ownerName === selectedOwnerName);
         return matchesSearch && matchesOwner;
       })
-      .sort((a, b) =>
-      {
+      .sort((a, b) => {
         const valA = a[sortField] || "";
         const valB = b[sortField] || "";
         return sortOrder === "asc" ? (valA > valB ? 1 : -1) : valA < valB ? 1 : -1;
       });
-  }, [leads, search, ownerFilter, sortField, sortOrder]);
+  }, [leads, search, ownerFilter, selectedOwnerName, sortField, sortOrder]);
 
-  const drawerProjects = useMemo(() =>
-  {
+  const drawerProjects = useMemo(() => {
     const merged = new Map<string, Project>();
     projectOptions.forEach((project) => merged.set(project.id, project));
     (selectedLead?.availableProjects || []).forEach((project) => merged.set(project.id, project));
     return Array.from(merged.values());
   }, [projectOptions, selectedLead?.availableProjects]);
 
-  const renderMainView = () =>
-  {
+  const renderMainView = () => {
     if (activeView === "analytics")
       return (
         <AnalyticsPage
-          owners={ users.map((u) => ({ id: u.id, name: u.name })) }
-          projects={ projectOptions }
-          lang={ currentLang }
+          owners={users.map((u) => ({ id: u.id, name: u.name }))}
+          projects={projectOptions}
+          lang={currentLang}
         />
       );
-    if (activeView === "todos") return <TodoDashboard lang={ currentLang } />;
-    if (activeView === "sent_tasks") return <SentTasksDashboard lang={ currentLang } />;
+    if (activeView === "todos") return <TodoDashboard lang={currentLang} refreshKey={todosRefreshKey} />;
+    if (activeView === "sent_tasks") return <SentTasksDashboard lang={currentLang} />;
     if (activeView === "my_projects")
       return (
         <MyProjectsDashboard
-          lang={ currentLang }
-          onEditProject={ async (project) =>
-          {
+          lang={currentLang}
+          onEditProject={async (project) => {
             const result = await dispatch(getProjectByIdAction(project.id));
-            if (getProjectByIdAction.fulfilled.match(result))
-            {
-              try
-              {
+            if (getProjectByIdAction.fulfilled.match(result)) {
+              try {
                 const projectLeadIds = await fetchLeadIdsForProject(project.id);
                 setEditingProjectLeadIds(projectLeadIds);
-              } catch (error)
-              {
+              } catch (error) {
                 console.error("[Project Edit] Failed to fetch leads with project filter", error);
                 setEditingProjectLeadIds(null);
               }
               setProjectToEdit(result.payload);
               setIsProjectModalOpen(true);
-            } else
-            {
+            } else {
               setToastState({
                 open: true,
                 type: "error",
-                message: (result.payload as string) ?? (currentLang === "de" ? "Projekt konnte nicht geladen werden." : "Failed to load project.")
+                message:
+                  (result.payload as string) ??
+                  (currentLang === "de" ? "Projekt konnte nicht geladen werden." : "Failed to load project.")
               });
             }
-          } }
-          onDeleteProject={ (project) => setProjectDeleteConfirm(project) }
+          }}
+          onDeleteProject={(project) => setProjectDeleteConfirm(project)}
         />
       );
-    if (activeView === "settings") return <SettingsDashboard lang={ currentLang } onSettingsUpdate={ fetchData } />;
-    if (activeView === "user_mgmt") return <UserManagementDashboard lang={ currentLang } />;
+    if (activeView === "settings") return <SettingsDashboard lang={currentLang} onSettingsUpdate={fetchData} />;
+    if (activeView === "user_mgmt") return <UserManagementDashboard lang={currentLang} />;
 
     return (
       <div className="flex-1 p-8 overflow-hidden flex flex-col">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-extrabold text-gray-900">{ t.pipeline.title }</h2>
+          <h2 className="text-2xl font-extrabold text-gray-900">{t.pipeline.title}</h2>
           <div className="text-sm text-gray-500">
-            { t.pipeline.total }: <span className="font-bold text-gray-900">{ filteredLeads.length }</span> { t.header.leads }
+            {t.pipeline.total}: <span className="font-bold text-gray-900">{filteredLeads.length}</span> {t.header.leads}
           </div>
         </div>
         <div className="lg:hidden mb-4 space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={ 18 } />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
-              placeholder={ t.header.searchPlaceholder }
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all"
-              value={ search }
-              onChange={ (e) => setSearch(e.target.value) }
+              placeholder={t.header.searchPlaceholder}
+              className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-blue-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-0 transition-all"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200/80 transition-colors"
+                aria-label={t.header.clearSearch}
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <select
-              className="w-full bg-gray-50 text-sm font-semibold text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500"
-              value={ ownerFilter }
-              onChange={ (e) => setOwnerFilter(e.target.value) }
+              className="w-full bg-gray-50 text-sm font-semibold text-gray-700 border border-blue-200 rounded-xl px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-0"
+              value={ownerFilter}
+              onChange={(e) => setOwnerFilter(e.target.value)}
             >
-              <option value="All">{ t.header.allOwners }</option>
-              { uniqueOwners.map((o) => (
-                <option key={ o } value={ o }>
-                  { o }
+              <option value="All">{t.header.allOwners}</option>
+              {ownerOptions.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
                 </option>
-              )) }
+              ))}
             </select>
             <select
-              className="w-full bg-gray-50 text-sm font-semibold text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500"
-              value={ projectFilter }
-              onChange={ (e) => setProjectFilter(e.target.value) }
+              className="w-full bg-gray-50 text-sm font-semibold text-gray-700 border border-blue-200 rounded-xl px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-0"
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
             >
-              <option value="All">{ t.header.allProjects }</option>
-              { projectOptions.map((p) => (
-                <option key={ p.id } value={ p.id }>
-                  { p.title }
+              <option value="All">{t.header.allProjects}</option>
+              {projectOptions.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
                 </option>
-              )) }
+              ))}
             </select>
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2.5">
-            <span className="text-sm text-gray-500">{ t.header.sortBy }</span>
+          <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-white px-3 py-2.5">
+            <span className="text-sm text-gray-500">{t.header.sortBy}</span>
             <button
-              onClick={ () => setSortField(sortField === "lastName" ? "createdAt" : "lastName") }
+              onClick={() => setSortField(sortField === "lastName" ? "createdAt" : "lastName")}
               className="text-sm font-bold text-blue-600"
             >
-              { sortField === "lastName" ? t.header.lastName : t.header.date }
+              {sortField === "lastName" ? t.header.lastName : t.header.date}
             </button>
           </div>
         </div>
-        { loading || leadsListStatus === "loading" ? (
+        {loading || leadsListStatus === "loading" ? (
           <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="animate-spin text-blue-600" size={ 48 } />
+            <Loader2 className="animate-spin text-blue-600" size={48} />
           </div>
+        ) : filteredLeads.length === 0 ? (
+          <p className="text-center text-gray-500 text-lg py-4">{t.pipeline.noLeadsFound}</p>
         ) : (
           <KanbanBoard
-            leads={ filteredLeads }
-            onLeadClick={ handleLeadClick }
-            onAddDeal={ setClosingLead }
-            lang={ currentLang }
+            leads={filteredLeads}
+            onLeadClick={handleLeadClick}
+            onAddDeal={setClosingLead}
+            lang={currentLang}
           />
-        ) }
+        )}
       </div>
     );
   };
 
-  const handleViewChange = (view: ViewType) =>
-  {
+  const [todosRefreshKey, setTodosRefreshKey] = useState(0);
+
+  const handleViewChange = (view: ViewType) => {
     setActiveView(view);
+    try {
+      localStorage.setItem(APP_VIEW_STORAGE_KEY, view);
+    } catch {}
     setIsMobileSidebarOpen(false);
+    if (view === "todos") setTodosRefreshKey((k) => k + 1);
   };
 
   const SidebarContent = () => (
     <>
       <div className="p-6">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <BarChart3 className="text-white" size={ 18 } />
+        <button
+          type="button"
+          onClick={() => handleViewChange("pipeline")}
+          className="flex items-center space-x-2 w-full text-left rounded-lg transition-colors hover:bg-gray-50 focus:outline-none focus:ring-0"
+        >
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
+            <BarChart3 className="text-white" size={18} />
           </div>
           <h1 className="text-xl font-bold text-gray-900 tracking-tight">LeadGen Pro</h1>
-        </div>
+        </button>
       </div>
 
       <nav className="flex-1 px-4 overflow-y-auto space-y-6">
         <div className="space-y-1">
           <button
-            onClick={ () => handleViewChange("pipeline") }
-            className={ `w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${ activeView === "pipeline" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50" }` }
+            onClick={() => handleViewChange("pipeline")}
+            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${activeView === "pipeline" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
           >
-            <LayoutDashboard size={ 20 } /> <span>{ t.sidebar.dashboard }</span>
+            <LayoutDashboard size={20} /> <span>{t.sidebar.dashboard}</span>
           </button>
           <button
-            onClick={ () => handleViewChange("analytics") }
-            className={ `w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${ activeView === "analytics" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50" }` }
+            onClick={() => handleViewChange("analytics")}
+            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${activeView === "analytics" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
           >
-            <PieChart size={ 20 } /> <span>{ t.sidebar.analytics }</span>
+            <PieChart size={20} /> <span>{t.sidebar.analytics}</span>
           </button>
         </div>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between px-3">
             <div className="flex items-center space-x-2 text-gray-400">
-              <Users size={ 16 } />
-              <span className="text-xs font-bold uppercase tracking-widest">{ t.sidebar.administrator }</span>
+              <Users size={16} />
+              <span className="text-xs font-bold uppercase tracking-widest">{t.sidebar.administrator}</span>
             </div>
           </div>
           <div className="space-y-1">
             <button
-              onClick={ () => handleViewChange("user_mgmt") }
-              className={ `w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${ activeView === "user_mgmt" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50" }` }
+              onClick={() => handleViewChange("user_mgmt")}
+              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${activeView === "user_mgmt" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
             >
-              <ShieldCheck size={ 18 } /> <span className="text-xs font-bold">{ t.userMgmt.title }</span>
+              <ShieldCheck size={18} /> <span className="text-xs font-bold">{t.userMgmt.title}</span>
             </button>
           </div>
         </div>
@@ -1341,32 +1312,32 @@ const App: React.FC = () =>
         <div className="space-y-4">
           <div className="flex items-center justify-between px-3">
             <div className="flex items-center space-x-2 text-gray-400">
-              <Briefcase size={ 16 } />
-              <span className="text-xs font-bold uppercase tracking-widest">{ t.sidebar.myArea }</span>
+              <Briefcase size={16} />
+              <span className="text-xs font-bold uppercase tracking-widest">{t.sidebar.myArea}</span>
             </div>
           </div>
           <div className="space-y-1">
             <button
-              onClick={ () => handleViewChange("todos") }
-              className={ `w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all ${ activeView === "todos" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50" }` }
+              onClick={() => handleViewChange("todos")}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all ${activeView === "todos" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
             >
               <div className="flex items-center space-x-3">
-                <CheckSquare size={ 18 } /> <span className="text-xs font-bold">{ t.sidebar.myTodos }</span>
+                <CheckSquare size={18} /> <span className="text-xs font-bold">{t.sidebar.myTodos}</span>
               </div>
             </button>
             <button
-              onClick={ () => handleViewChange("my_projects") }
-              className={ `w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all ${ activeView === "my_projects" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50" }` }
+              onClick={() => handleViewChange("my_projects")}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all ${activeView === "my_projects" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
             >
               <div className="flex items-center space-x-3">
-                <FolderKanban size={ 18 } /> <span className="text-xs font-bold">{ t.sidebar.myProjects }</span>
+                <FolderKanban size={18} /> <span className="text-xs font-bold">{t.sidebar.myProjects}</span>
               </div>
             </button>
             <button
-              onClick={ () => handleViewChange("settings") }
-              className={ `w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${ activeView === "settings" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50" }` }
+              onClick={() => handleViewChange("settings")}
+              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium transition-all ${activeView === "settings" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
             >
-              <Settings size={ 18 } /> <span className="text-xs font-bold">{ t.sidebar.settings }</span>
+              <Settings size={18} /> <span className="text-xs font-bold">{t.sidebar.settings}</span>
             </button>
           </div>
         </div>
@@ -1375,314 +1346,313 @@ const App: React.FC = () =>
       <div className="lg:hidden border-t border-gray-100 p-4 space-y-2">
         <button
           type="button"
-          onClick={ () =>
-          {
+          onClick={() => {
             handleExport();
             setIsMobileSidebarOpen(false);
-          } }
+          }}
           className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm"
         >
-          <Download size={ 16 } className="text-emerald-600" />
-          { t.header.exportTitle }
+          <Download size={16} className="text-emerald-600" />
+          {t.header.exportTitle}
         </button>
 
         <button
           type="button"
-          onClick={ () =>
-          {
+          onClick={() => {
             handleOpenTrashModal();
             setIsMobileSidebarOpen(false);
-          } }
+          }}
           className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm"
         >
           <span className="flex items-center gap-2">
-            <Trash2 size={ 16 } className="text-gray-500" />
-            { t.trash.title }
+            <Trash2 size={16} className="text-gray-500" />
+            {t.trash.title}
           </span>
-          { trashedLeadsCount > 0 && (
+          {trashedLeadsCount > 0 && (
             <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
-              { trashedLeadsCount }
+              {trashedLeadsCount}
             </span>
-          ) }
+          )}
         </button>
 
         <button
           type="button"
-          onClick={ () =>
-          {
+          onClick={() => {
             setProjectToEdit(null);
             setEditingProjectLeadIds(null);
             setIsProjectModalOpen(true);
             setIsMobileSidebarOpen(false);
-          } }
+          }}
           className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm"
         >
-          <FolderPlus size={ 20 } className="text-indigo-600" />
-          { t.header.createProject }
+          <FolderPlus size={20} className="text-indigo-600" />
+          {t.header.createProject}
         </button>
 
         <button
           type="button"
-          onClick={ () =>
-          {
+          onClick={() => {
             setCreateLeadError(null);
             setIsModalOpen(true);
             setIsMobileSidebarOpen(false);
-          } }
+          }}
           className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-blue-600 text-white font-bold text-sm"
         >
-          <Plus size={ 16 } />
-          { t.header.captureLead }
+          <Plus size={16} />
+          {t.header.captureLead}
         </button>
 
         <button
           type="button"
-          onClick={ async () =>
-          {
+          onClick={async () => {
             await dispatch(logout());
             setIsMobileSidebarOpen(false);
             navigate("/login?signedOut=1", { replace: true });
-          } }
+          }}
           className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-semibold text-sm"
         >
-          <LogOut size={ 20 } className="text-gray-500" />
-          { t.header.signOut }
+          <LogOut size={20} className="text-gray-500" />
+          {t.header.signOut}
         </button>
       </div>
     </>
   );
 
   return (
-    <DndContext sensors={ sensors } onDragEnd={ handleDragEnd }>
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="flex h-screen bg-gray-50 overflow-hidden">
         <aside className="w-64 bg-white border-r border-gray-200 hidden lg:flex flex-col">
           <SidebarContent />
         </aside>
 
-        { isMobileSidebarOpen && (
+        {isMobileSidebarOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
-            <div className="absolute inset-0 bg-black/30" onClick={ () => setIsMobileSidebarOpen(false) } />
+            <div className="absolute inset-0 bg-black/30" onClick={() => setIsMobileSidebarOpen(false)} />
             <aside className="absolute left-0 top-0 h-full w-72 max-w-[85vw] bg-white border-r border-gray-200 shadow-2xl flex flex-col">
               <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-end">
                 <button
                   type="button"
-                  onClick={ () => setIsMobileSidebarOpen(false) }
+                  onClick={() => setIsMobileSidebarOpen(false)}
                   className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
                   aria-label="Close menu"
                 >
-                  <X size={ 20 } />
+                  <X size={20} />
                 </button>
               </div>
               <SidebarContent />
             </aside>
           </div>
-        ) }
+        )}
 
         <main className="flex-1 flex flex-col min-w-0">
           <header className="bg-white border-b border-gray-200 px-4 lg:px-8 py-4 flex items-center justify-between sticky top-0 z-40">
             <div className="flex items-center w-full">
               <button
                 type="button"
-                onClick={ () => setIsMobileSidebarOpen(true) }
+                onClick={() => setIsMobileSidebarOpen(true)}
                 className="lg:hidden p-2 rounded-lg border border-gray-200 text-gray-600 bg-white shrink-0"
                 aria-label="Open menu"
               >
-                <Menu size={ 18 } />
+                <Menu size={18} />
               </button>
 
-              {/* Search and Filters (desktop only) */ }
+              {/* Search and Filters (desktop only) */}
               <div className="hidden lg:flex items-center flex-1 max-w-3xl space-x-4 ml-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={ 18 } />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input
                     type="text"
-                    placeholder={ t.header.searchPlaceholder }
-                    className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all"
-                    value={ search }
-                    onChange={ (e) => setSearch(e.target.value) }
+                    placeholder={t.header.searchPlaceholder}
+                    className="w-full pl-10 pr-10 py-2 bg-gray-50 border border-blue-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-0 transition-all"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                   />
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => setSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200/80 transition-colors"
+                      aria-label={t.header.clearSearch}
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
                 </div>
 
-                {/* Advanced Header Filters */ }
+                {/* Advanced Header Filters */}
                 <div className="flex items-center space-x-2 bg-gray-50 p-1 rounded-xl">
                   <div className="px-2 text-gray-400">
-                    <Filter size={ 14 } />
+                    <Filter size={14} />
                   </div>
                   <select
                     className="bg-transparent text-xs font-semibold text-gray-600 border-none focus:ring-0 py-1"
-                    value={ ownerFilter }
-                    onChange={ (e) => setOwnerFilter(e.target.value) }
+                    value={ownerFilter}
+                    onChange={(e) => setOwnerFilter(e.target.value)}
                   >
-                    <option value="All">{ t.header.allOwners }</option>
-                    { uniqueOwners.map((o) => (
-                      <option key={ o } value={ o }>
-                        { o }
+                    <option value="All">{t.header.allOwners}</option>
+                    {ownerOptions.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
                       </option>
-                    )) }
+                    ))}
                   </select>
                   <div className="w-[1px] h-4 bg-gray-200 mx-1" />
                   <select
                     className="bg-transparent text-xs font-semibold text-gray-600 border-none focus:ring-0 py-1 max-w-[120px]"
-                    value={ projectFilter }
-                    onChange={ (e) => setProjectFilter(e.target.value) }
+                    value={projectFilter}
+                    onChange={(e) => setProjectFilter(e.target.value)}
                   >
-                    <option value="All">{ t.header.allProjects }</option>
-                    { projectOptions.map((p) => (
-                      <option key={ p.id } value={ p.id }>
-                        { p.title }
+                    <option value="All">{t.header.allProjects}</option>
+                    {projectOptions.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.title}
                       </option>
-                    )) }
+                    ))}
                   </select>
                 </div>
               </div>
             </div>
 
-            {/* Actions: desktop only */ }
+            {/* Actions: desktop only */}
             <div className="hidden lg:flex items-center space-x-3 ml-6">
               <div className="flex items-center space-x-2 mr-2">
-                <span className="text-xs text-gray-400 font-medium">{ t.header.sortBy }</span>
+                <span className="text-xs text-gray-400 font-medium">{t.header.sortBy}</span>
                 <button
-                  onClick={ () => setSortField(sortField === "lastName" ? "createdAt" : "lastName") }
+                  onClick={() => setSortField(sortField === "lastName" ? "createdAt" : "lastName")}
                   className="text-xs font-bold text-blue-600 hover:underline"
                 >
-                  { sortField === "lastName" ? t.header.lastName : t.header.date }
+                  {sortField === "lastName" ? t.header.lastName : t.header.date}
                 </button>
               </div>
 
               <button
-                onClick={ handleExport }
+                onClick={handleExport}
                 className="p-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all flex items-center shadow-sm group"
-                title={ t.header.exportTitle }
+                title={t.header.exportTitle}
               >
-                <Download size={ 20 } className="text-emerald-600 group-hover:scale-110 transition-transform" />
+                <Download size={20} className="text-emerald-600 group-hover:scale-110 transition-transform" />
               </button>
 
-              <TrashBin onClick={ handleOpenTrashModal } count={ trashedLeadsCount } title={ t.trash.openTitle } />
+              <TrashBin onClick={handleOpenTrashModal} count={trashedLeadsCount} title={t.trash.openTitle} />
 
               <button
-                onClick={ () =>
-                {
+                onClick={() => {
                   setProjectToEdit(null);
                   setEditingProjectLeadIds(null);
                   setIsProjectModalOpen(true);
-                } }
+                }}
                 className="bg-white text-gray-700 border border-gray-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all flex items-center shadow-sm"
               >
-                <FolderPlus size={ 20 } className="mr-2 text-indigo-600" />{ " " }
-                { t.header.createProject }
+                <FolderPlus size={20} className="mr-2 text-indigo-600" /> {t.header.createProject}
               </button>
 
               <button
-                onClick={ () =>
-                {
+                onClick={() => {
                   setCreateLeadError(null);
                   setIsModalOpen(true);
-                } }
+                }}
                 className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all flex items-center"
               >
-                <Plus size={ 18 } className="mr-2" /> { t.header.captureLead }
+                <Plus size={18} className="mr-2" /> {t.header.captureLead}
               </button>
 
               <button
-                onClick={ async () =>
-                {
+                onClick={async () => {
                   await dispatch(logout());
                   navigate("/login?signedOut=1", { replace: true });
-                } }
+                }}
                 className="bg-white text-gray-700 border border-gray-200 px-3 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all flex items-center shadow-sm"
-                title={ t.header.signOut }
+                title={t.header.signOut}
               >
-                <LogOut size={ 20 } className="mr-2 text-gray-500" />
-                { t.header.signOut }
+                <LogOut size={20} className="mr-2 text-gray-500" />
+                {t.header.signOut}
               </button>
             </div>
           </header>
-          { renderMainView() }
+          {renderMainView()}
         </main>
 
         <LeadDetailDrawer
-          lead={ selectedLead }
-          projects={ drawerProjects }
-          owners={ users.map((u) => ({ id: u.id, name: u.name })) }
-          onClose={ () => setSelectedLead(null) }
-          onUpdate={ handleUpdateLead }
-          onAddComment={ handleAddComment }
-          onUpdateComment={ handleUpdateComment }
-          onDeleteComment={ handleDeleteComment }
-          onDelete={ handleDeleteLead }
-          lang={ currentLang }
+          lead={selectedLead}
+          projects={drawerProjects}
+          owners={users.map((u) => ({ id: u.id, name: u.name }))}
+          onClose={() => setSelectedLead(null)}
+          onUpdate={handleUpdateLead}
+          onAddComment={handleAddComment}
+          onUpdateComment={handleUpdateComment}
+          onDeleteComment={handleDeleteComment}
+          onDelete={handleDeleteLead}
+          lang={currentLang}
         />
-        { isModalOpen && (
+        {isModalOpen && (
           <LeadModal
-            owners={ users.map((u) => ({ id: u.id, name: u.name })) }
-            apiError={ createLeadError }
-            onClose={ () =>
-            {
+            owners={users.map((u) => ({ id: u.id, name: u.name }))}
+            apiError={createLeadError}
+            onClose={() => {
               setCreateLeadError(null);
               setIsModalOpen(false);
-            } }
-            onSave={ handleCreateLead }
-            lang={ currentLang }
+            }}
+            onSave={handleCreateLead}
+            lang={currentLang}
           />
-        ) }
-        { isProjectModalOpen && (
+        )}
+        {isProjectModalOpen && (
           <ProjectModal
-            leads={ leads }
-            owners={ users.map((u) => ({ id: u.id, name: u.name, role: u.role })) }
-            lang={ currentLang }
-            initialSelectedLeadIds={ editingProjectLeadIds }
-            onClose={ () =>
-            {
+            leads={leads}
+            owners={users.map((u) => ({ id: u.id, name: u.name, role: u.role }))}
+            lang={currentLang}
+            initialSelectedLeadIds={editingProjectLeadIds}
+            onClose={() => {
               setProjectToEdit(null);
               setEditingProjectLeadIds(null);
               setIsProjectModalOpen(false);
-            } }
-            onSave={ handleCreateProject }
-            editingProject={ projectToEdit }
-            onUpdate={ handleUpdateProject }
+            }}
+            onSave={handleCreateProject}
+            editingProject={projectToEdit}
+            onUpdate={handleUpdateProject}
           />
-        ) }
+        )}
         <ConfirmDeleteModal
-          isOpen={ Boolean(projectDeleteConfirm) }
-          title={ t.myProjects.deleteProjectTitle }
-          description={ t.myProjects.deleteProjectDesc }
-          confirmLabel={ t.common.delete }
-          cancelLabel={ t.common.cancel }
-          onConfirm={ handleDeleteProjectConfirm }
-          onCancel={ () => setProjectDeleteConfirm(null) }
+          isOpen={Boolean(projectDeleteConfirm)}
+          title={t.myProjects.deleteProjectTitle}
+          description={t.myProjects.deleteProjectDesc}
+          confirmLabel={t.common.delete}
+          cancelLabel={t.common.cancel}
+          onConfirm={handleDeleteProjectConfirm}
+          onCancel={() => setProjectDeleteConfirm(null)}
         />
-        { isTrashModalOpen && (
+        {isTrashModalOpen && (
           <TrashModal
-            leads={ deletedLeads }
-            lang={ currentLang }
-            onClose={ () => setIsTrashModalOpen(false) }
-            onRestore={ handleRestoreDeletedLead }
-            onPermanentDelete={ handlePermanentDeleteDeletedLead }
+            leads={deletedLeads}
+            lang={currentLang}
+            onClose={() => setIsTrashModalOpen(false)}
+            onRestore={handleRestoreDeletedLead}
+            onPermanentDelete={handlePermanentDeleteDeletedLead}
           />
-        ) }
-        { taskingOwner && (
+        )}
+        {taskingOwner && (
           <TaskModal
-            owner={ taskingOwner }
-            onClose={ () => setTaskingOwner(null) }
-            onAssign={ handleAssignTask }
-            lang={ currentLang }
+            owner={taskingOwner}
+            onClose={() => setTaskingOwner(null)}
+            onAssign={handleAssignTask}
+            lang={currentLang}
           />
-        ) }
-        { closingLead && (
+        )}
+        {closingLead && (
           <DealModal
-            lead={ closingLead }
-            projects={ projects }
-            owners={ users.map((u) => ({ id: u.id, name: u.name })) }
-            lang={ currentLang }
-            onClose={ () => setClosingLead(null) }
-            onSave={ handleSaveDeal }
+            lead={closingLead}
+            projects={projects}
+            owners={users.map((u) => ({ id: u.id, name: u.name }))}
+            lang={currentLang}
+            onClose={() => setClosingLead(null)}
+            onSave={handleSaveDeal}
           />
-        ) }
+        )}
         <Toast
-          isOpen={ toastState.open }
-          type={ toastState.type }
-          message={ toastState.message }
-          onClose={ () => setToastState((prev) => ({ ...prev, open: false, message: "" })) }
+          isOpen={toastState.open}
+          type={toastState.type}
+          message={toastState.message}
+          onClose={() => setToastState((prev) => ({ ...prev, open: false, message: "" }))}
         />
       </div>
     </DndContext>

@@ -118,7 +118,6 @@ export const api = {
 
   sendTestEmail: async (target: string): Promise<void> => {
     await new Promise((r) => setTimeout(r, 1000));
-    console.log(`[API] Sending Test Mail to ${target}...`);
   },
 
   // --- Users / Owners ---

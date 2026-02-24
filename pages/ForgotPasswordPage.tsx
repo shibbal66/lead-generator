@@ -46,7 +46,6 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
     },
     validationSchema: schema,
     onSubmit: (values) => {
-      console.log("[ForgotPassword] submit", { email: values.email });
       onSubmit(values);
     }
   });
@@ -59,7 +58,6 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
 
   useEffect(() => {
     if (!successMessage) return;
-    console.log("[ForgotPassword] success", successMessage);
     setToastState({ open: true, type: "success", message: successMessage });
   }, [successMessage]);
 

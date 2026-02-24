@@ -313,15 +313,12 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
 
   const handleDelete = () => {
     if (!lead || !onDelete) return;
-    console.log("[LeadDetailDrawer] open delete confirmation", lead.id);
     setIsDeleteModalOpen(true);
   };
 
   const handleConfirmDelete = async () => {
     if (!lead || !onDelete) return;
-    console.log("[LeadDetailDrawer] confirm delete", lead.id);
     await onDelete(lead.id);
-    console.log("[LeadDetailDrawer] delete API dispatched", lead.id);
     setIsDeleteModalOpen(false);
     onClose();
   };
@@ -342,7 +339,6 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
     setUpdatingTodoId(id);
 
     try {
-      console.log("[LeadDetailDrawer] update task payload", { taskId: id, completed: nextCompleted });
       const result = await dispatch(
         updateTask({
           taskId: id,
@@ -355,8 +351,6 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
         setLeadTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, isCompleted: targetTodo.isCompleted } : todo)));
         return;
       }
-
-      console.log("[LeadDetailDrawer] update task success", result.payload.task);
       // Task completed notifications are shown only when received from Firebase (no local push).
     } catch (error) {
       console.error("[LeadDetailDrawer] update task failed", error);
@@ -464,7 +458,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -472,13 +466,25 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   else setIsEditing(true);
                 }}
                 className={`p-2 rounded-lg transition-colors ${isEditing ? "bg-blue-600 text-white" : "text-gray-500 hover:text-blue-600 hover:bg-white"}`}
+                title={isEditing ? t.common.save : t.common.edit}
               >
                 {isEditing ? <Save size={20} /> : <Edit2 size={20} />}
               </button>
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title={t.common.delete}
+                >
+                  <Trash2 size={20} />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 text-gray-500 hover:text-red-500 hover:bg-white rounded-lg transition-colors"
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-white rounded-lg transition-colors"
+                title={t.common.cancel}
               >
                 <X size={20} />
               </button>
@@ -514,7 +520,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                   ))}
                 </select>
                 <span className="text-xs text-gray-400 italic">
-                  {t.leadDetail.lastUpdated}: {formatDateTimeOrFallback(lead.updatedAt)}
+                  {t.leadDetail.createdAt}: {formatDateTimeOrFallback(lead.createdAt)}
                 </span>
               </div>
             </div>
@@ -946,7 +952,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                     maxLength={FORM_MAX_LENGTH.comment}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder={t.leadDetail.addCommentPlaceholder}
-                    className="w-full border-gray-200 rounded-xl p-3 pr-12 text-sm focus:ring-2 focus:ring-blue-500 resize-none h-20 outline-none"
+                    className="w-full border border-gray-200 rounded-xl p-3 pr-12 text-sm outline-none focus:border-gray-400 focus:ring-0 resize-none h-20"
                   />
                   <button
                     type="submit"
@@ -1095,12 +1101,15 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
           </div>
 
           <div className="p-4 border-t flex justify-end bg-gray-50/50">
-            <button
-              onClick={handleDelete}
-              className="flex items-center text-xs text-red-500 hover:text-red-700 font-semibold px-4 py-2 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              <Trash2 size={14} className="mr-2" /> {t.common.delete}
-            </button>
+            {isEditing ? (
+              <button
+                type="button"
+                onClick={handleSave}
+                className="flex items-center text-sm text-white bg-blue-600 hover:bg-blue-700 font-semibold px-5 py-2.5 rounded-lg transition-colors"
+              >
+                <Save size={16} className="mr-2" /> {t.common.save}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

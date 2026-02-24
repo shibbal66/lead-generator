@@ -8,13 +8,28 @@ import { request } from "./apiClient";
 type DealsApiResponse = { success?: boolean; message?: string; data?: AnalyticsDealsData };
 type PipelineApiResponse = { success?: boolean; message?: string; data?: AnalyticsPipelineData };
 
+/** Normalize to YYYY-MM-DD for API (e.g. startDate=2026-02-22&endDate=2026-02-23). */
+function toISODateString(value: string | undefined): string | undefined {
+  if (!value || typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const date = new Date(trimmed);
+  if (Number.isNaN(date.getTime())) return undefined;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function buildQuery(params?: DashboardAnalyticsParams): string {
   if (!params) return "";
   const q = new URLSearchParams();
   if (params.ownerId) q.set("ownerId", params.ownerId);
   if (params.projectId) q.set("projectId", params.projectId);
-  if (params.startDate) q.set("startDate", params.startDate);
-  if (params.endDate) q.set("endDate", params.endDate);
+  const startDate = toISODateString(params.startDate);
+  const endDate = toISODateString(params.endDate);
+  if (startDate) q.set("startDate", startDate);
+  if (endDate) q.set("endDate", endDate);
   const s = q.toString();
   return s ? `?${s}` : "";
 }

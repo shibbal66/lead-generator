@@ -65,7 +65,6 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
     },
     validationSchema: schema,
     onSubmit: (values) => {
-      console.log("[SignUp] submit", { fullName: values.fullName, email: values.email, passwordLength: values.password.length });
       onSubmit({ ...values, invitation: invitationId || undefined });
     }
   });
@@ -84,7 +83,6 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
 
   useEffect(() => {
     if (!successMessage) return;
-    console.log("[SignUp] success", successMessage);
     setToastState({ open: true, type: "success", message: successMessage });
   }, [successMessage]);
 

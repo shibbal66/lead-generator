@@ -49,7 +49,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
     () =>
       Yup.object({
         name: Yup.string().trim().required(lang === "de" ? "Deal-Name ist erforderlich" : "Deal name is required"),
-        projectId: Yup.string().required(lang === "de" ? "Projekt ist erforderlich" : "Project is required"),
+        projectId: Yup.string().optional(),
         ownerId: Yup.string().required(lang === "de" ? "Betreuer ist erforderlich" : "Owner is required"),
         dealType: Yup.mixed<DealModalSubmitPayload["dealType"]>()
           .oneOf(["CONSULTING", "ONLINE_TRADING", "OFF_SITE"])
@@ -132,7 +132,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
                 autoFocus
                 type="text"
                 placeholder={t.deal.namePlaceholder}
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 text-sm font-medium"
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-sm font-medium"
                 value={formik.values.name}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
@@ -143,20 +143,19 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
 
           <div>
             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-              {t.header.projects}
+              {t.header.projects} (optional)
             </label>
             <div className="relative">
               <FolderKanban className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
               <select
                 name="projectId"
-                required
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold text-gray-700 appearance-none"
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-sm font-bold text-gray-700 appearance-none"
                 value={formik.values.projectId}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
               >
-                <option value="" disabled>
-                  {lang === "de" ? "Bitte Projekt wählen..." : "Please select a project..."}
+                <option value="">
+                  {lang === "de" ? "Kein Projekt" : "No project"}
                 </option>
                 {projectOptions.map((project) => (
                   <option key={project.id} value={project.id}>
@@ -179,7 +178,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
               <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
               <select
                 name="ownerId"
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold text-gray-700 appearance-none"
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-sm font-bold text-gray-700 appearance-none"
                 value={formik.values.ownerId}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
@@ -206,7 +205,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
               </label>
               <select
                 name="dealType"
-                className="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold text-gray-700"
+                className="w-full px-4 py-3 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-sm font-bold text-gray-700"
                 value={formik.values.dealType}
                 onChange={formik.handleChange}
               >
@@ -222,7 +221,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
                 </label>
                 <select
                   name="currency"
-                  className="w-full px-2 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold text-gray-700"
+                  className="w-full px-2 py-3 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-sm font-bold text-gray-700"
                   value={formik.values.currency}
                   onChange={formik.handleChange}
                 >
@@ -239,7 +238,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
                   <input
                     name="totalAmount"
                     type="number"
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-sm font-bold"
                     value={formik.values.totalAmount}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
@@ -262,7 +261,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
                 <input
                   name="startDate"
                   type="date"
-                  className="w-full pl-9 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 text-[10px] font-bold text-gray-600"
+                  className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-[10px] font-bold text-gray-600"
                   value={formik.values.startDate}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
@@ -273,7 +272,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
                 <input
                   name="endDate"
                   type="date"
-                  className="w-full pl-9 pr-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 text-[10px] font-bold text-gray-600"
+                  className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-[10px] font-bold text-gray-600"
                   value={formik.values.endDate}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
@@ -293,7 +292,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
               <FileText className="absolute left-4 top-4 text-gray-300" size={16} />
               <textarea
                 name="description"
-                className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 text-sm font-medium resize-none min-h-[100px]"
+                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-blue-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-0 text-sm font-medium resize-none min-h-[100px]"
                 placeholder="..."
                 value={formik.values.description}
                 onChange={formik.handleChange}

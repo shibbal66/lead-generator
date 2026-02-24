@@ -229,7 +229,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                     onClick={() => setIsOldPasswordVisible((prev) => !prev)}
                     className="absolute inset-y-0 right-3 my-auto text-gray-400 hover:text-gray-600"
                   >
-                    {isOldPasswordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {isOldPasswordVisible ? <Eye size={16} /> : <EyeOff size={16} />}
                   </button>
                 </div>
                 {passwordFormik.touched.oldPassword && passwordFormik.errors.oldPassword && (
@@ -253,7 +253,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                     onClick={() => setIsNewPasswordVisible((prev) => !prev)}
                     className="absolute inset-y-0 right-3 my-auto text-gray-400 hover:text-gray-600"
                   >
-                    {isNewPasswordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {isNewPasswordVisible ? <Eye size={16} /> : <EyeOff size={16} />}
                   </button>
                 </div>
                 {passwordFormik.touched.newPassword && passwordFormik.errors.newPassword && (
@@ -278,7 +278,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                     onClick={() => setIsConfirmPasswordVisible((prev) => !prev)}
                     className="absolute inset-y-0 right-3 my-auto text-gray-400 hover:text-gray-600"
                   >
-                    {isConfirmPasswordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {isConfirmPasswordVisible ? <Eye size={16} /> : <EyeOff size={16} />}
                   </button>
                 </div>
                 {passwordFormik.touched.confirmPassword && passwordFormik.errors.confirmPassword && (

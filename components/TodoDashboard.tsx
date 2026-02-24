@@ -1,16 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
-import {
-  CheckCircle2,
-  Circle,
-  Calendar,
-  Send,
-  Clock,
-  Loader2,
-  User,
-  Zap,
-  Link as LinkIcon,
-  Users
-} from "lucide-react";
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from "react";
+import { CheckCircle2, Circle, Calendar, Send, Clock, Loader2, User, Zap, Link as LinkIcon, Users } from "lucide-react";
 import { translations, Language } from "../translations";
 import { FORM_MAX_LENGTH } from "../constants";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -20,9 +9,10 @@ import { getUsers } from "../store/actions/userActions";
 
 interface TodoDashboardProps {
   lang: Language;
+  refreshKey?: number;
 }
 
-const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
+const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) => {
   const dispatch = useAppDispatch();
   const tasks = useAppSelector((state) => state.tasks.tasks);
   const tasksStatus = useAppSelector((state) => state.tasks.listStatus);
@@ -44,6 +34,38 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
   const [leadError, setLeadError] = useState("");
   const [page, setPage] = useState(1);
   const limit = 10;
+  const DESCRIPTION_CANDIDATE_LENGTH = 20;
+  const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
+  const [overflowTaskIds, setOverflowTaskIds] = useState<Record<string, boolean>>({});
+  const descRefs = useRef<Map<string, HTMLParagraphElement>>(new Map());
+  const taskInputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const measureOverflows = useCallback(() => {
+    const next: Record<string, boolean> = {};
+    descRefs.current.forEach((el, id) => {
+      next[id] = el.scrollWidth > el.clientWidth;
+    });
+    setOverflowTaskIds((prev) => ({ ...prev, ...next }));
+  }, []);
+
+  useLayoutEffect(() => {
+    measureOverflows();
+  }, [tasks, expandedTaskIds, measureOverflows]);
+
+  useEffect(() => {
+    const onResize = () => measureOverflows();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [measureOverflows]);
+
+  const toggleTaskExpanded = (taskId: string) => {
+    setExpandedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
 
   const t = useMemo(() => translations[lang], [lang]);
   const loading = tasksStatus === "loading" || leadsStatus === "loading" || usersStatus === "loading";
@@ -57,7 +79,14 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
   useEffect(() => {
     void dispatch(getLeads({ page: 1, limit: 500 }));
     void dispatch(getUsers({ page: 1, limit: 200 }));
-  }, [dispatch]);
+  }, [dispatch, refreshKey]);
+
+  useEffect(() => {
+    const el = taskInputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.max(44, el.scrollHeight)}px`;
+  }, [text]);
 
   const handleAddTodo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +103,9 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
             : `Max. ${FORM_MAX_LENGTH.todoDescription} characters`
           : ""
     );
-    setOwnerError(selectedOwnerId ? "" : lang === "de" ? "Verantwortliche Person ist erforderlich." : "Owner is required.");
+    setOwnerError(
+      selectedOwnerId ? "" : lang === "de" ? "Verantwortliche Person ist erforderlich." : "Owner is required."
+    );
     setLeadError(selectedLeadId ? "" : lang === "de" ? "Lead ist erforderlich." : "Lead is required.");
     setDeadlineError(
       !deadline
@@ -88,9 +119,18 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
           : ""
     );
 
-    if (!summary || summary.length > FORM_MAX_LENGTH.todoDescription || !selectedOwnerId || !selectedLeadId || !deadline) return;
+    if (
+      !summary ||
+      summary.length > FORM_MAX_LENGTH.todoDescription ||
+      !selectedOwnerId ||
+      !selectedLeadId ||
+      !deadline
+    )
+      return;
     if (deadline < today) {
-      setDeadlineError(lang === "de" ? "Deadline darf nicht in der Vergangenheit liegen." : "Deadline cannot be a past date.");
+      setDeadlineError(
+        lang === "de" ? "Deadline darf nicht in der Vergangenheit liegen." : "Deadline cannot be a past date."
+      );
       return;
     }
 
@@ -167,21 +207,31 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
             </span>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6">
             <form onSubmit={handleAddTodo} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative col-span-1 md:col-span-2">
-                  <input
-                    type="text"
+                  <textarea
+                    ref={taskInputRef}
                     value={text}
                     required
+                    rows={2}
                     maxLength={FORM_MAX_LENGTH.todoDescription}
                     onChange={(e) => {
-                      setText(e.target.value);
-                      if (e.target.value.trim()) setTextError("");
+                      const value = e.target.value;
+                      setText(value);
+                      if (value.length >= FORM_MAX_LENGTH.todoDescription) {
+                        setTextError(
+                          lang === "de"
+                            ? `Max. ${FORM_MAX_LENGTH.todoDescription} Zeichen`
+                            : `Maximum ${FORM_MAX_LENGTH.todoDescription} characters`
+                        );
+                      } else {
+                        setTextError("");
+                      }
                     }}
                     placeholder={t.todos.inputPlaceholder}
-                    className="w-full px-4 py-3.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-sm font-medium"
+                    className="w-full min-h-[44px] px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 focus:ring-0 transition-all text-sm font-medium resize-none overflow-y-hidden"
                   />
                   {textError && <p className="mt-1 text-[11px] font-semibold text-red-500">{textError}</p>}
                 </div>
@@ -199,16 +249,14 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                         setSelectedOwnerId(e.target.value);
                         if (e.target.value) setOwnerError("");
                       }}
-                      className="w-full pl-9 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-xs font-bold text-gray-600 appearance-none"
+                      className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 focus:ring-0 transition-all text-xs font-bold text-gray-600 appearance-none"
                     >
                       <option value="">{t.todos.selectOwner}</option>
-                      {owners
-                        .filter((owner) => owner.id !== currentUserId)
-                        .map((owner) => (
-                          <option key={owner.id} value={owner.id}>
-                            {owner.name}
-                          </option>
-                        ))}
+                      {owners.map((owner) => (
+                        <option key={owner.id} value={owner.id}>
+                          {owner.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   {ownerError && <p className="mt-1 text-[11px] font-semibold text-red-500">{ownerError}</p>}
@@ -227,7 +275,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                         setSelectedLeadId(e.target.value);
                         if (e.target.value) setLeadError("");
                       }}
-                      className="w-full pl-9 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-xs font-bold text-gray-600 appearance-none"
+                      className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 focus:ring-0 transition-all text-xs font-bold text-gray-600 appearance-none"
                     >
                       <option value="">{t.todos.selectLead}</option>
                       {leads.map((l) => (
@@ -256,13 +304,15 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                         setDeadline(value);
                         if (value && value < today) {
                           setDeadlineError(
-                            lang === "de" ? "Deadline darf nicht in der Vergangenheit liegen." : "Deadline cannot be a past date."
+                            lang === "de"
+                              ? "Deadline darf nicht in der Vergangenheit liegen."
+                              : "Deadline cannot be a past date."
                           );
                         } else {
                           setDeadlineError("");
                         }
                       }}
-                      className="w-full pl-9 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-xs font-bold text-gray-600"
+                      className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 focus:ring-0 transition-all text-xs font-bold text-gray-600"
                     />
                   </div>
                   {deadlineError && <p className="mt-1 text-[11px] font-semibold text-red-500">{deadlineError}</p>}
@@ -272,7 +322,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                   <button
                     type="submit"
                     disabled={!text.trim() || !selectedOwnerId || !selectedLeadId || !deadline}
-                    className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     <Send size={16} /> {t.todos.save}
                   </button>
@@ -293,7 +343,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                 return (
                   <div
                     key={task.id}
-                    className={`group flex items-center gap-4 p-4 rounded-2xl border transition-all ${task.completed ? "bg-gray-50 border-transparent opacity-60" : "bg-white border-gray-100 hover:border-blue-200"}`}
+                    className={`group flex items-start gap-4 p-4 rounded-2xl border transition-all ${task.completed ? "bg-gray-50 border-transparent opacity-60" : "bg-white border-gray-100 hover:border-gray-200"}`}
                   >
                     <button
                       onClick={() => handleToggleTodo(task.id, task.completed)}
@@ -302,11 +352,52 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang }) => {
                       {task.completed ? <CheckCircle2 size={22} /> : <Circle size={22} />}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-sm font-bold truncate ${task.completed ? "text-gray-400 line-through" : "text-gray-900"}`}
-                      >
-                        {task.description}
-                      </p>
+                      {expandedTaskIds.has(task.id) ? (
+                        <>
+                          <p
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => toggleTaskExpanded(task.id)}
+                            onKeyDown={(e) => e.key === "Enter" && toggleTaskExpanded(task.id)}
+                            className={`text-sm font-bold cursor-pointer hover:opacity-80 break-words min-w-0 ${task.completed ? "text-gray-400 line-through" : "text-gray-900"}`}
+                          >
+                            {task.description}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleTaskExpanded(task.id);
+                            }}
+                            className="text-[10px] font-semibold text-blue-600 hover:underline mt-0.5"
+                          >
+                            {t.todos.showLess}
+                          </button>
+                        </>
+                      ) : task.description.length <= DESCRIPTION_CANDIDATE_LENGTH || overflowTaskIds[task.id] === false ? (
+                        <p className={`text-sm font-bold break-words min-w-0 ${task.completed ? "text-gray-400 line-through" : "text-gray-900"}`}>
+                          {task.description}
+                        </p>
+                      ) : (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => toggleTaskExpanded(task.id)}
+                          onKeyDown={(e) => e.key === "Enter" && toggleTaskExpanded(task.id)}
+                          className="flex items-baseline gap-1 min-w-0 cursor-pointer hover:opacity-80"
+                          title={task.description}
+                        >
+                          <p
+                            ref={(el) => {
+                              if (el) descRefs.current.set(task.id, el);
+                              else descRefs.current.delete(task.id);
+                            }}
+                            className={`text-sm font-bold truncate min-w-0 ${task.completed ? "text-gray-400 line-through" : "text-gray-900"}`}
+                          >
+                            {task.description}
+                          </p>
+                        </div>
+                      )}
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
                         {task.deadline && (
                           <div className="flex items-center gap-1.5">
