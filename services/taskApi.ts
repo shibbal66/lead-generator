@@ -10,27 +10,33 @@ type TaskApiResponse = {
   page?: number;
   limit?: number;
 };
-type TaskWithLeadItem = { tasks: TaskRecord; leads?: unknown };
+type TaskWithLeadItem = { tasks: TaskRecord; leads?: unknown; };
 
-const parseJsonSafe = async (response: Response): Promise<TaskApiResponse> => {
-  try {
+const parseJsonSafe = async (response: Response): Promise<TaskApiResponse> =>
+{
+  try
+  {
     return (await response.json()) as TaskApiResponse;
-  } catch {
+  } catch
+  {
     return {};
   }
 };
 
-const apiRequest = async (path: string, init?: RequestInit): Promise<TaskApiResponse> => {
+const apiRequest = async (path: string, init?: RequestInit): Promise<TaskApiResponse> =>
+{
   const res = await request(path, init);
   const data = await parseJsonSafe(res);
-  if (!res.ok) {
+  if (!res.ok)
+  {
     throw new Error(data.message || "Task request failed");
   }
   return data;
 };
 
 export const taskApi = {
-  createTask: async (payload: CreateTaskPayload): Promise<{ task: TaskRecord; message: string }> => {
+  createTask: async (payload: CreateTaskPayload): Promise<{ task: TaskRecord; message: string; }> =>
+  {
     const response = await apiRequest("/task", {
       method: "POST",
       headers: {
@@ -39,7 +45,8 @@ export const taskApi = {
       body: JSON.stringify(payload)
     });
 
-    if (!response.task) {
+    if (!response.task)
+    {
       throw new Error("Created task payload missing");
     }
 
@@ -49,7 +56,8 @@ export const taskApi = {
     };
   },
 
-  getTasks: async (params?: GetTasksParams): Promise<{ tasks: TaskRecord[]; total: number; page: number; limit: number }> => {
+  getTasks: async (params?: GetTasksParams): Promise<{ tasks: TaskRecord[]; total: number; page: number; limit: number; }> =>
+  {
     const query = new URLSearchParams();
     if (params?.assignedTo) query.set("assignedTo", params.assignedTo);
     if (params?.leadId) query.set("leadId", params.leadId);
@@ -57,13 +65,13 @@ export const taskApi = {
     if (typeof params?.page === "number") query.set("page", String(params.page));
     if (typeof params?.limit === "number") query.set("limit", String(params.limit));
 
-    const path = query.toString() ? `/task?${query.toString()}` : "/task";
+    const path = query.toString() ? `/task?${ query.toString() }` : "/task";
     const response = await apiRequest(path, { method: "GET" });
     const raw = response.tasks as TaskWithLeadItem[] | TaskRecord[] | undefined;
     const tasks: TaskRecord[] = Array.isArray(raw)
       ? raw.map((item: TaskWithLeadItem | TaskRecord) =>
-          "tasks" in item && item.tasks && typeof item.tasks === "object" ? item.tasks : (item as TaskRecord)
-        )
+        "tasks" in item && item.tasks && typeof item.tasks === "object" ? item.tasks : (item as TaskRecord)
+      )
       : [];
 
     return {
@@ -74,8 +82,9 @@ export const taskApi = {
     };
   },
 
-  updateTask: async ({ taskId, data }: UpdateTaskPayload): Promise<{ task: TaskRecord; message: string }> => {
-    const response = await apiRequest(`/task/${taskId}`, {
+  updateTask: async ({ taskId, data }: UpdateTaskPayload): Promise<{ task: TaskRecord; message: string; }> =>
+  {
+    const response = await apiRequest(`/task/${ taskId }`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json"
@@ -83,13 +92,25 @@ export const taskApi = {
       body: JSON.stringify(data)
     });
 
-    if (!response.task) {
+    if (!response.task)
+    {
       throw new Error("Updated task payload missing");
     }
 
     return {
       task: response.task,
       message: response.message || "Task updated successfully"
+    };
+  },
+
+  deleteTask: async (taskId: string): Promise<{ message: string; }> =>
+  {
+    const response = await apiRequest(`/task/${ taskId }`, {
+      method: "DELETE"
+    });
+
+    return {
+      message: response.message || "Task deleted successfully"
     };
   }
 };

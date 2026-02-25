@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from "react";
-import { CheckCircle2, Circle, Calendar, Send, Clock, Loader2, User, Zap, Link as LinkIcon, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, Circle, Calendar, Send, Clock, Loader2, User, Zap, Link as LinkIcon, Users, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { translations, Language } from "../translations";
 import { FORM_MAX_LENGTH } from "../constants";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { createTask, getTasks, updateTask } from "../store/actions/taskActions";
+import { createTask, getTasks, updateTask, deleteTask } from "../store/actions/taskActions";
 import { getLeads } from "../store/actions/leadActions";
 import { getUsers } from "../store/actions/userActions";
 
-interface TodoDashboardProps {
+interface TodoDashboardProps
+{
   lang: Language;
   refreshKey?: number;
 }
 
-const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) => {
+const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) =>
+{
   const dispatch = useAppDispatch();
   const tasks = useAppSelector((state) => state.tasks.tasks);
   const tasksStatus = useAppSelector((state) => state.tasks.listStatus);
@@ -40,26 +42,32 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) =
   const descRefs = useRef<Map<string, HTMLParagraphElement>>(new Map());
   const taskInputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const measureOverflows = useCallback(() => {
+  const measureOverflows = useCallback(() =>
+  {
     const next: Record<string, boolean> = {};
-    descRefs.current.forEach((el, id) => {
+    descRefs.current.forEach((el, id) =>
+    {
       next[id] = el.scrollWidth > el.clientWidth;
     });
     setOverflowTaskIds((prev) => ({ ...prev, ...next }));
   }, []);
 
-  useLayoutEffect(() => {
+  useLayoutEffect(() =>
+  {
     measureOverflows();
   }, [tasks, expandedTaskIds, measureOverflows]);
 
-  useEffect(() => {
+  useEffect(() =>
+  {
     const onResize = () => measureOverflows();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [measureOverflows]);
 
-  const toggleTaskExpanded = (taskId: string) => {
-    setExpandedTaskIds((prev) => {
+  const toggleTaskExpanded = (taskId: string) =>
+  {
+    setExpandedTaskIds((prev) =>
+    {
       const next = new Set(prev);
       if (next.has(taskId)) next.delete(taskId);
       else next.add(taskId);
@@ -72,23 +80,27 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) =
   const today = new Date().toISOString().split("T")[0];
   const totalPages = Math.max(1, Math.ceil(tasksTotal / (tasksLimit || limit)));
 
-  useEffect(() => {
+  useEffect(() =>
+  {
     void dispatch(getTasks({ page, limit }));
   }, [dispatch, page]);
 
-  useEffect(() => {
+  useEffect(() =>
+  {
     void dispatch(getLeads({ page: 1, limit: 500 }));
     void dispatch(getUsers({ page: 1, limit: 200 }));
   }, [dispatch, refreshKey]);
 
-  useEffect(() => {
+  useEffect(() =>
+  {
     const el = taskInputRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.max(44, el.scrollHeight)}px`;
+    el.style.height = `${ Math.max(44, el.scrollHeight) }px`;
   }, [text]);
 
-  const handleAddTodo = async (e: React.FormEvent) => {
+  const handleAddTodo = async (e: React.FormEvent) =>
+  {
     e.preventDefault();
     const summary = text.trim();
 
@@ -99,8 +111,8 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) =
           : "Task is required."
         : summary.length > FORM_MAX_LENGTH.todoDescription
           ? lang === "de"
-            ? `Max. ${FORM_MAX_LENGTH.todoDescription} Zeichen`
-            : `Max. ${FORM_MAX_LENGTH.todoDescription} characters`
+            ? `Max. ${ FORM_MAX_LENGTH.todoDescription } Zeichen`
+            : `Max. ${ FORM_MAX_LENGTH.todoDescription } characters`
           : ""
     );
     setOwnerError(
@@ -127,7 +139,8 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) =
       !deadline
     )
       return;
-    if (deadline < today) {
+    if (deadline < today)
+    {
       setDeadlineError(
         lang === "de" ? "Deadline darf nicht in der Vergangenheit liegen." : "Deadline cannot be a past date."
       );
@@ -153,7 +166,8 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) =
     void dispatch(getTasks({ page: 1, limit }));
   };
 
-  const handleToggleTodo = async (taskId: string, completed: boolean) => {
+  const handleToggleTodo = async (taskId: string, completed: boolean) =>
+  {
     const nextCompleted = !completed;
     const result = await dispatch(
       updateTask({
@@ -162,28 +176,47 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) =
       })
     );
 
-    if (!updateTask.fulfilled.match(result)) {
+    if (!updateTask.fulfilled.match(result))
+    {
       console.error("[TodoDashboard] update task rejected", result);
       return;
     }
   };
 
-  const getLeadName = (id?: string) => {
-    if (!id) return null;
-    const lead = leads.find((leadRecord) => leadRecord.id === id);
-    return lead ? `${lead.firstName} ${lead.lastName}` : null;
+  const handleDeleteTodo = async (taskId: string) =>
+  {
+    const result = await dispatch(deleteTask(taskId));
+    if (deleteTask.fulfilled.match(result))
+    {
+      if (tasks.length === 1 && page > 1)
+      {
+        setPage(p => p - 1);
+      } else
+      {
+        void dispatch(getTasks({ page, limit }));
+      }
+    }
   };
 
-  const getOwnerName = (id?: string) => {
+  const getLeadName = (id?: string) =>
+  {
+    if (!id) return null;
+    const lead = leads.find((leadRecord) => leadRecord.id === id);
+    return lead ? `${ lead.firstName } ${ lead.lastName }` : null;
+  };
+
+  const getOwnerName = (id?: string) =>
+  {
     if (!id) return null;
     const owner = owners.find((o) => o.id === id);
     return owner ? owner.name : null;
   };
 
-  if (loading) {
+  if (loading)
+  {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
+        <Loader2 className="animate-spin text-blue-600" size={ 32 } />
       </div>
     );
   }
@@ -191,140 +224,148 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) =
   return (
     <div className="flex-1 flex flex-col p-8 bg-white/50 backdrop-blur-sm rounded-3xl m-4 shadow-inner overflow-hidden">
       <div className="mb-8">
-        <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">{t.todos.title}</h2>
-        <p className="text-gray-500 mt-1">{t.todos.subtitle}</p>
+        <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">{ t.todos.title }</h2>
+        <p className="text-gray-500 mt-1">{ t.todos.subtitle }</p>
       </div>
 
       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-10">
         <section>
           <div className="flex items-center gap-3 mb-4 px-2">
             <div className="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
-              <Zap size={18} />
+              <Zap size={ 18 } />
             </div>
-            <h3 className="text-lg font-bold text-gray-800 tracking-tight">{t.todos.selfCreated}</h3>
+            <h3 className="text-lg font-bold text-gray-800 tracking-tight">{ t.todos.selfCreated }</h3>
             <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
-              {tasks.length}
+              { tasks.length }
             </span>
           </div>
 
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6">
-            <form onSubmit={handleAddTodo} className="space-y-4">
+            <form onSubmit={ handleAddTodo } className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative col-span-1 md:col-span-2">
                   <textarea
-                    ref={taskInputRef}
-                    value={text}
+                    ref={ taskInputRef }
+                    value={ text }
                     required
-                    rows={2}
-                    maxLength={FORM_MAX_LENGTH.todoDescription}
-                    onChange={(e) => {
+                    rows={ 2 }
+                    maxLength={ FORM_MAX_LENGTH.todoDescription }
+                    onChange={ (e) =>
+                    {
                       const value = e.target.value;
                       setText(value);
-                      if (value.length >= FORM_MAX_LENGTH.todoDescription) {
+                      if (value.length >= FORM_MAX_LENGTH.todoDescription)
+                      {
                         setTextError(
                           lang === "de"
-                            ? `Max. ${FORM_MAX_LENGTH.todoDescription} Zeichen`
-                            : `Maximum ${FORM_MAX_LENGTH.todoDescription} characters`
+                            ? `Max. ${ FORM_MAX_LENGTH.todoDescription } Zeichen`
+                            : `Maximum ${ FORM_MAX_LENGTH.todoDescription } characters`
                         );
-                      } else {
+                      } else
+                      {
                         setTextError("");
                       }
-                    }}
-                    placeholder={t.todos.inputPlaceholder}
+                    } }
+                    placeholder={ t.todos.inputPlaceholder }
                     className="w-full min-h-[44px] px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 focus:ring-0 transition-all text-sm font-medium resize-none overflow-y-hidden"
                   />
-                  {textError && <p className="mt-1 text-[11px] font-semibold text-red-500">{textError}</p>}
+                  { textError && <p className="mt-1 text-[11px] font-semibold text-red-500">{ textError }</p> }
                 </div>
 
                 <div className="relative">
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">
-                    {t.todos.assignTo}
+                    { t.todos.assignTo }
                   </label>
                   <div className="relative">
-                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={ 14 } />
                     <select
                       required
-                      value={selectedOwnerId}
-                      onChange={(e) => {
+                      value={ selectedOwnerId }
+                      onChange={ (e) =>
+                      {
                         setSelectedOwnerId(e.target.value);
                         if (e.target.value) setOwnerError("");
-                      }}
+                      } }
                       className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 focus:ring-0 transition-all text-xs font-bold text-gray-600 appearance-none"
                     >
-                      <option value="">{t.todos.selectOwner}</option>
-                      {owners.map((owner) => (
-                        <option key={owner.id} value={owner.id}>
-                          {owner.name}
+                      <option value="">{ t.todos.selectOwner }</option>
+                      { owners.map((owner) => (
+                        <option key={ owner.id } value={ owner.id }>
+                          { owner.name }
                         </option>
-                      ))}
+                      )) }
                     </select>
                   </div>
-                  {ownerError && <p className="mt-1 text-[11px] font-semibold text-red-500">{ownerError}</p>}
+                  { ownerError && <p className="mt-1 text-[11px] font-semibold text-red-500">{ ownerError }</p> }
                 </div>
 
                 <div className="relative">
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">
-                    {t.todos.linkLead}
+                    { t.todos.linkLead }
                   </label>
                   <div className="relative">
-                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={ 14 } />
                     <select
                       required
-                      value={selectedLeadId}
-                      onChange={(e) => {
+                      value={ selectedLeadId }
+                      onChange={ (e) =>
+                      {
                         setSelectedLeadId(e.target.value);
                         if (e.target.value) setLeadError("");
-                      }}
+                      } }
                       className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 focus:ring-0 transition-all text-xs font-bold text-gray-600 appearance-none"
                     >
-                      <option value="">{t.todos.selectLead}</option>
-                      {leads.map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.firstName} {l.lastName}
+                      <option value="">{ t.todos.selectLead }</option>
+                      { leads.map((l) => (
+                        <option key={ l.id } value={ l.id }>
+                          { l.firstName } { l.lastName }
                         </option>
-                      ))}
+                      )) }
                     </select>
                   </div>
-                  {leadError && <p className="mt-1 text-[11px] font-semibold text-red-500">{leadError}</p>}
+                  { leadError && <p className="mt-1 text-[11px] font-semibold text-red-500">{ leadError }</p> }
                 </div>
 
                 <div className="relative">
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">
-                    {t.todos.deadline}
+                    { t.todos.deadline }
                   </label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={ 14 } />
                     <input
                       type="date"
                       required
-                      value={deadline}
-                      min={today}
-                      onChange={(e) => {
+                      value={ deadline }
+                      min={ today }
+                      onChange={ (e) =>
+                      {
                         const value = e.target.value;
                         setDeadline(value);
-                        if (value && value < today) {
+                        if (value && value < today)
+                        {
                           setDeadlineError(
                             lang === "de"
                               ? "Deadline darf nicht in der Vergangenheit liegen."
                               : "Deadline cannot be a past date."
                           );
-                        } else {
+                        } else
+                        {
                           setDeadlineError("");
                         }
-                      }}
+                      } }
                       className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 focus:ring-0 transition-all text-xs font-bold text-gray-600"
                     />
                   </div>
-                  {deadlineError && <p className="mt-1 text-[11px] font-semibold text-red-500">{deadlineError}</p>}
+                  { deadlineError && <p className="mt-1 text-[11px] font-semibold text-red-500">{ deadlineError }</p> }
                 </div>
 
                 <div className="flex items-end">
                   <button
                     type="submit"
-                    disabled={!text.trim() || !selectedOwnerId || !selectedLeadId || !deadline}
+                    disabled={ !text.trim() || !selectedOwnerId || !selectedLeadId || !deadline }
                     className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    <Send size={16} /> {t.todos.save}
+                    <Send size={ 16 } /> { t.todos.save }
                   </button>
                 </div>
               </div>
@@ -332,124 +373,134 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) =
           </div>
 
           <div className="space-y-3">
-            {tasks.length === 0 ? (
-              <p className="text-xs text-gray-400 italic px-2">{t.todos.noPersonalTasks}</p>
+            { tasks.length === 0 ? (
+              <p className="text-xs text-gray-400 italic px-2">{ t.todos.noPersonalTasks }</p>
             ) : (
-              tasks.map((task) => {
+              tasks.map((task) =>
+              {
                 const leadName = getLeadName(task.leadId);
                 const ownerName = getOwnerName(task.assignedTo);
                 const isOverdue = task.deadline && new Date(task.deadline) < new Date() && !task.completed;
 
                 return (
                   <div
-                    key={task.id}
-                    className={`group flex items-start gap-4 p-4 rounded-2xl border transition-all ${task.completed ? "bg-gray-50 border-transparent opacity-60" : "bg-white border-gray-100 hover:border-gray-200"}`}
+                    key={ task.id }
+                    className={ `group flex items-start gap-4 p-4 rounded-2xl border transition-all ${ task.completed ? "bg-gray-50 border-transparent opacity-60" : "bg-white border-gray-100 hover:border-gray-200" }` }
                   >
                     <button
-                      onClick={() => handleToggleTodo(task.id, task.completed)}
-                      className={`shrink-0 transition-colors ${task.completed ? "text-blue-500" : "text-gray-300 hover:text-blue-500"}`}
+                      onClick={ () => handleToggleTodo(task.id, task.completed) }
+                      className={ `shrink-0 transition-colors ${ task.completed ? "text-blue-500" : "text-gray-300 hover:text-blue-500" }` }
                     >
-                      {task.completed ? <CheckCircle2 size={22} /> : <Circle size={22} />}
+                      { task.completed ? <CheckCircle2 size={ 22 } /> : <Circle size={ 22 } /> }
                     </button>
                     <div className="flex-1 min-w-0">
-                      {expandedTaskIds.has(task.id) ? (
+                      { expandedTaskIds.has(task.id) ? (
                         <>
                           <p
                             role="button"
-                            tabIndex={0}
-                            onClick={() => toggleTaskExpanded(task.id)}
-                            onKeyDown={(e) => e.key === "Enter" && toggleTaskExpanded(task.id)}
-                            className={`text-sm font-bold cursor-pointer hover:opacity-80 break-words min-w-0 ${task.completed ? "text-gray-400 line-through" : "text-gray-900"}`}
+                            tabIndex={ 0 }
+                            onClick={ () => toggleTaskExpanded(task.id) }
+                            onKeyDown={ (e) => e.key === "Enter" && toggleTaskExpanded(task.id) }
+                            className={ `text-sm font-bold cursor-pointer hover:opacity-80 break-words min-w-0 ${ task.completed ? "text-gray-400 line-through" : "text-gray-900" }` }
                           >
-                            {task.description}
+                            { task.description }
                           </p>
                           <button
                             type="button"
-                            onClick={(e) => {
+                            onClick={ (e) =>
+                            {
                               e.stopPropagation();
                               toggleTaskExpanded(task.id);
-                            }}
+                            } }
                             className="text-[10px] font-semibold text-blue-600 hover:underline mt-0.5"
                           >
-                            {t.todos.showLess}
+                            { t.todos.showLess }
                           </button>
                         </>
                       ) : task.description.length <= DESCRIPTION_CANDIDATE_LENGTH || overflowTaskIds[task.id] === false ? (
-                        <p className={`text-sm font-bold break-words min-w-0 ${task.completed ? "text-gray-400 line-through" : "text-gray-900"}`}>
-                          {task.description}
+                        <p className={ `text-sm font-bold break-words min-w-0 ${ task.completed ? "text-gray-400 line-through" : "text-gray-900" }` }>
+                          { task.description }
                         </p>
                       ) : (
                         <div
                           role="button"
-                          tabIndex={0}
-                          onClick={() => toggleTaskExpanded(task.id)}
-                          onKeyDown={(e) => e.key === "Enter" && toggleTaskExpanded(task.id)}
+                          tabIndex={ 0 }
+                          onClick={ () => toggleTaskExpanded(task.id) }
+                          onKeyDown={ (e) => e.key === "Enter" && toggleTaskExpanded(task.id) }
                           className="flex items-baseline gap-1 min-w-0 cursor-pointer hover:opacity-80"
-                          title={task.description}
+                          title={ task.description }
                         >
                           <p
-                            ref={(el) => {
+                            ref={ (el) =>
+                            {
                               if (el) descRefs.current.set(task.id, el);
                               else descRefs.current.delete(task.id);
-                            }}
-                            className={`text-sm font-bold truncate min-w-0 ${task.completed ? "text-gray-400 line-through" : "text-gray-900"}`}
+                            } }
+                            className={ `text-sm font-bold truncate min-w-0 ${ task.completed ? "text-gray-400 line-through" : "text-gray-900" }` }
                           >
-                            {task.description}
+                            { task.description }
                           </p>
                         </div>
-                      )}
+                      ) }
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-                        {task.deadline && (
+                        { task.deadline && (
                           <div className="flex items-center gap-1.5">
-                            <Clock size={12} className={isOverdue ? "text-red-500" : "text-gray-400"} />
-                            <span className={`text-[10px] font-bold ${isOverdue ? "text-red-500" : "text-gray-500"}`}>
-                              {new Date(task.deadline).toLocaleDateString(lang === "de" ? "de-DE" : "en-US")}
+                            <Clock size={ 12 } className={ isOverdue ? "text-red-500" : "text-gray-400" } />
+                            <span className={ `text-[10px] font-bold ${ isOverdue ? "text-red-500" : "text-gray-500" }` }>
+                              { new Date(task.deadline).toLocaleDateString(lang === "de" ? "de-DE" : "en-US") }
                             </span>
                           </div>
-                        )}
-                        {leadName && (
+                        ) }
+                        { leadName && (
                           <div className="flex items-center gap-1 text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded text-[9px] font-bold">
-                            <LinkIcon size={10} />
-                            {leadName}
+                            <LinkIcon size={ 10 } />
+                            { leadName }
                           </div>
-                        )}
-                        {ownerName && task.assignedTo !== currentUserId && (
+                        ) }
+                        { ownerName && task.assignedTo !== currentUserId && (
                           <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded text-[9px] font-bold">
-                            <User size={10} />
-                            {ownerName}
+                            <User size={ 10 } />
+                            { ownerName }
                           </div>
-                        )}
+                        ) }
                       </div>
                     </div>
+                    <button
+                      onClick={ () => handleDeleteTodo(task.id) }
+                      className="shrink-0 p-2 text-gray-300 hover:text-red-500 transition-colors"
+                      title={ t.common.delete }
+                    >
+                      <Trash2 size={ 18 } />
+                    </button>
                   </div>
                 );
               })
-            )}
+            ) }
           </div>
         </section>
       </div>
       <div className="mt-8 flex items-center justify-between gap-4 py-4 px-5 rounded-2xl bg-white border border-gray-200 shadow-sm">
         <span className="text-sm font-semibold text-gray-600 bg-gray-50 rounded-lg px-4 py-2.5 border border-gray-100">
-          {t.common.pageLabel.replace("{page}", String(page)).replace("{total}", String(totalPages))}
+          { t.common.pageLabel.replace("{page}", String(page)).replace("{total}", String(totalPages)) }
         </span>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            disabled={page <= 1 || loading}
+            onClick={ () => setPage((prev) => Math.max(1, prev - 1)) }
+            disabled={ page <= 1 || loading }
             className="inline-flex items-center justify-center gap-2 min-w-[100px] px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-transparent border border-gray-200 bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600"
           >
-            <ChevronLeft size={18} />
-            {t.common.previous}
+            <ChevronLeft size={ 18 } />
+            { t.common.previous }
           </button>
           <button
             type="button"
-            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-            disabled={page >= totalPages || loading}
+            onClick={ () => setPage((prev) => Math.min(totalPages, prev + 1)) }
+            disabled={ page >= totalPages || loading }
             className="inline-flex items-center justify-center gap-2 min-w-[100px] px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-transparent border border-gray-200 bg-white text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600"
           >
-            {t.common.next}
-            <ChevronRight size={18} />
+            { t.common.next }
+            <ChevronRight size={ 18 } />
           </button>
         </div>
       </div>

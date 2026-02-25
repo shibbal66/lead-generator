@@ -138,7 +138,8 @@ export const translations = {
       linkedLead: "Verknüpft:",
       assignedTo: "Verantwortlich:",
       showMore: "Mehr anzeigen",
-      showLess: "Weniger anzeigen"
+      showLess: "Weniger anzeigen",
+      deleteConfirm: "Möchten Sie diese Aufgabe wirklich löschen?"
     },
     myProjects: {
       title: "Meine Projekte",
@@ -442,7 +443,8 @@ export const translations = {
       linkedLead: "Linked:",
       assignedTo: "Responsible:",
       showMore: "Show more",
-      showLess: "Show less"
+      showLess: "Show less",
+      deleteConfirm: "Do you really want to delete this task?"
     },
     myProjects: {
       title: "My Projects",
