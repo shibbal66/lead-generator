@@ -11,30 +11,37 @@ type UserApiResponse = {
   limit?: number;
 };
 
-const parseJsonSafe = async (response: Response): Promise<UserApiResponse> => {
-  try {
+const parseJsonSafe = async (response: Response): Promise<UserApiResponse> =>
+{
+  try
+  {
     return (await response.json()) as UserApiResponse;
-  } catch {
+  } catch
+  {
     return {};
   }
 };
 
-const apiRequest = async (path: string, init?: RequestInit): Promise<UserApiResponse> => {
+const apiRequest = async (path: string, init?: RequestInit): Promise<UserApiResponse> =>
+{
   const response = await request(path, init);
   const data = await parseJsonSafe(response);
-  if (!response.ok) {
+  if (!response.ok)
+  {
     throw new Error(data.message || "User request failed");
   }
   return data;
 };
 
 export const userApi = {
-  getUsers: async (params?: GetUsersParams) => {
+  getUsers: async (params?: GetUsersParams) =>
+  {
     const query = new URLSearchParams();
     if (params?.page) query.set("page", String(params.page));
     if (params?.limit) query.set("limit", String(params.limit));
+    if (params?.teamId) query.set("teamId", params.teamId);
 
-    const path = query.toString() ? `/user?${query.toString()}` : "/user";
+    const path = query.toString() ? `/user?${ query.toString() }` : "/user";
     const data = await apiRequest(path, { method: "GET" });
 
     return {
@@ -45,22 +52,27 @@ export const userApi = {
     };
   },
 
-  getUserById: async (userId: string): Promise<AppUser> => {
-    const data = await apiRequest(`/user/${userId}`, { method: "GET" });
+  getUserById: async (userId: string): Promise<AppUser> =>
+  {
+    const data = await apiRequest(`/user/${ userId }`, { method: "GET" });
 
-    if (!data.user) {
+    if (!data.user)
+    {
       throw new Error("User not found");
     }
 
     return data.user;
   },
 
-  updateUser: async ({ userId, data }: UpdateUserPayload): Promise<{ user: AppUser; message: string }> => {
-    const paths = ["/user", `/user/${userId}`];
+  updateUser: async ({ userId, data }: UpdateUserPayload): Promise<{ user: AppUser; message: string; }> =>
+  {
+    const paths = ["/user", `/user/${ userId }`];
     let lastError: unknown = null;
 
-    for (const path of paths) {
-      try {
+    for (const path of paths)
+    {
+      try
+      {
         const response = await apiRequest(path, {
           method: "PATCH",
           headers: {
@@ -69,7 +81,8 @@ export const userApi = {
           body: JSON.stringify(data)
         });
 
-        if (!response.user) {
+        if (!response.user)
+        {
           throw new Error("Updated user payload missing");
         }
 
@@ -77,7 +90,8 @@ export const userApi = {
           user: response.user,
           message: response.message || "User updated successfully"
         };
-      } catch (error) {
+      } catch (error)
+      {
         lastError = error;
       }
     }
@@ -88,7 +102,8 @@ export const userApi = {
   updateUserPassword: async ({
     oldPassword,
     newPassword
-  }: UpdateUserPasswordPayload): Promise<{ user?: AppUser; message: string }> => {
+  }: UpdateUserPasswordPayload): Promise<{ user?: AppUser; message: string; }> =>
+  {
     const body = new URLSearchParams();
     body.set("oldPassword", oldPassword);
     body.set("newPassword", newPassword);
@@ -107,8 +122,9 @@ export const userApi = {
     };
   },
 
-  deleteUser: async (userId: string): Promise<{ message: string }> => {
-    const data = await apiRequest(`/user/${userId}`, { method: "DELETE" });
+  deleteUser: async (userId: string): Promise<{ message: string; }> =>
+  {
+    const data = await apiRequest(`/user/${ userId }`, { method: "DELETE" });
     return {
       message: data.message || "User deleted successfully"
     };

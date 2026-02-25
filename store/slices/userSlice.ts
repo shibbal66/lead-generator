@@ -20,6 +20,7 @@ export type AppUser = {
 export type GetUsersParams = {
   page?: number;
   limit?: number;
+  teamId?: string;
 };
 
 export type UpdateUserBody = {
@@ -78,90 +79,110 @@ const userSlice = createSlice({
   name: "users",
   initialState,
   reducers: {
-    clearUsersMessages: (state) => {
+    clearUsersMessages: (state) =>
+    {
       state.error = null;
       state.successMessage = null;
     },
-    clearSelectedUser: (state) => {
+    clearSelectedUser: (state) =>
+    {
       state.selectedUser = null;
       state.detailStatus = "idle";
     }
   },
-  extraReducers: (builder) => {
+  extraReducers: (builder) =>
+  {
     builder
-      .addCase(getUsers.pending, (state) => {
+      .addCase(getUsers.pending, (state) =>
+      {
         state.listStatus = "loading";
         state.error = null;
       })
-      .addCase(getUsers.fulfilled, (state, action) => {
+      .addCase(getUsers.fulfilled, (state, action) =>
+      {
         state.listStatus = "succeeded";
         state.users = action.payload.users;
         state.total = action.payload.total;
         state.page = action.payload.page;
         state.limit = action.payload.limit;
       })
-      .addCase(getUsers.rejected, (state, action) => {
+      .addCase(getUsers.rejected, (state, action) =>
+      {
         state.listStatus = "failed";
         state.error = (action.payload as string) || "Failed to fetch users";
       })
-      .addCase(getUserById.pending, (state) => {
+      .addCase(getUserById.pending, (state) =>
+      {
         state.detailStatus = "loading";
         state.error = null;
       })
-      .addCase(getUserById.fulfilled, (state, action) => {
+      .addCase(getUserById.fulfilled, (state, action) =>
+      {
         state.detailStatus = "succeeded";
         state.selectedUser = action.payload;
       })
-      .addCase(getUserById.rejected, (state, action) => {
+      .addCase(getUserById.rejected, (state, action) =>
+      {
         state.detailStatus = "failed";
         state.error = (action.payload as string) || "Failed to fetch user";
       })
-      .addCase(updateUser.pending, (state) => {
+      .addCase(updateUser.pending, (state) =>
+      {
         state.updateStatus = "loading";
         state.error = null;
         state.successMessage = null;
       })
-      .addCase(updateUser.fulfilled, (state, action) => {
+      .addCase(updateUser.fulfilled, (state, action) =>
+      {
         state.updateStatus = "succeeded";
         state.successMessage = action.payload.message;
         state.selectedUser = action.payload.user;
         state.users = state.users.map((user) => (user.id === action.payload.user.id ? action.payload.user : user));
       })
-      .addCase(updateUser.rejected, (state, action) => {
+      .addCase(updateUser.rejected, (state, action) =>
+      {
         state.updateStatus = "failed";
         state.error = (action.payload as string) || "Failed to update user";
       })
-      .addCase(updateUserPassword.pending, (state) => {
+      .addCase(updateUserPassword.pending, (state) =>
+      {
         state.updatePasswordStatus = "loading";
         state.error = null;
         state.successMessage = null;
       })
-      .addCase(updateUserPassword.fulfilled, (state, action) => {
+      .addCase(updateUserPassword.fulfilled, (state, action) =>
+      {
         state.updatePasswordStatus = "succeeded";
         state.successMessage = action.payload.message;
-        if (action.payload.user) {
+        if (action.payload.user)
+        {
           state.selectedUser = action.payload.user;
           state.users = state.users.map((user) => (user.id === action.payload.user!.id ? action.payload.user! : user));
         }
       })
-      .addCase(updateUserPassword.rejected, (state, action) => {
+      .addCase(updateUserPassword.rejected, (state, action) =>
+      {
         state.updatePasswordStatus = "failed";
         state.error = (action.payload as string) || "Failed to update password";
       })
-      .addCase(deleteUser.pending, (state) => {
+      .addCase(deleteUser.pending, (state) =>
+      {
         state.deleteStatus = "loading";
         state.error = null;
         state.successMessage = null;
       })
-      .addCase(deleteUser.fulfilled, (state, action) => {
+      .addCase(deleteUser.fulfilled, (state, action) =>
+      {
         state.deleteStatus = "succeeded";
         state.successMessage = action.payload.message;
         state.users = state.users.filter((user) => user.id !== action.payload.userId);
-        if (state.selectedUser?.id === action.payload.userId) {
+        if (state.selectedUser?.id === action.payload.userId)
+        {
           state.selectedUser = null;
         }
       })
-      .addCase(deleteUser.rejected, (state, action) => {
+      .addCase(deleteUser.rejected, (state, action) =>
+      {
         state.deleteStatus = "failed";
         state.error = (action.payload as string) || "Failed to delete user";
       });
