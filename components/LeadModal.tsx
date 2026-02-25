@@ -18,10 +18,6 @@ interface LeadModalProps
 
 const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, apiError }) =>
 {
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [enrichmentError, setEnrichmentError] = useState("");
-
   const t = useMemo(() => translations[lang], [lang]);
   const isDe = lang === "de";
   const lettersOnlyPattern = /^[\p{L}\s'-]+$/u;
@@ -191,40 +187,6 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
     }
   }, [apiError]);
 
-  const handleEnrich = async () =>
-  {
-    if (
-      !formik.values.linkedinUrl ||
-      !Yup.string().url().isValidSync(formik.values.linkedinUrl) ||
-      !formik.values.linkedinUrl.includes("linkedin.com")
-    )
-    {
-      setEnrichmentError(
-        lang === "de" ? "Bitte geben Sie eine gültige LinkedIn URL ein." : "Please enter a valid LinkedIn URL."
-      );
-      return;
-    }
-
-    setLoading(true);
-    setEnrichmentError("");
-    try
-    {
-      const data = await api.enrichLinkedIn(formik.values.linkedinUrl);
-      formik.setValues({ ...formik.values, ...data });
-      setStep(2);
-    } catch (err)
-    {
-      setEnrichmentError(
-        lang === "de"
-          ? "Enrichment fehlgeschlagen. Bitte manuell ausfüllen."
-          : "Enrichment failed. Please fill manually."
-      );
-      setStep(2);
-    } finally
-    {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -238,271 +200,193 @@ const LeadModal: React.FC<LeadModalProps> = ({ onClose, onSave, owners, lang, ap
         </div>
 
         <div className="p-8 h-[75vh] overflow-y-auto custom-scrollbar">
-          {/* Stepper */ }
-          <div className="flex items-center mb-8">
-            <div className="flex items-center gap-2">
-              <div
-                className={ `flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-colors shrink-0 ${ step >= 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-500" }` }
-              >
-                1
+          <form onSubmit={ formik.handleSubmit } className="space-y-4 pb-4" noValidate>
+            { apiError && !formik.errors.company && !formik.errors.email && !formik.errors.phone && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-100">
+                <p className="text-sm font-medium text-red-700">{ apiError }</p>
               </div>
-              <span className={ `text-xs font-medium hidden sm:inline ${ step >= 1 ? "text-gray-700" : "text-gray-400" }` }>
-                { t.leadModal.step1 }
-              </span>
-            </div>
-            <div className={ `flex-1 h-0.5 mx-3 min-w-[12px] ${ step >= 2 ? "bg-blue-600" : "bg-gray-200" }` } />
-            <div className="flex items-center gap-2">
-              <div
-                className={ `flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-colors shrink-0 ${ step >= 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-500" }` }
-              >
-                2
-              </div>
-              <span className={ `text-xs font-medium hidden sm:inline ${ step >= 2 ? "text-gray-700" : "text-gray-400" }` }>
-                { t.leadModal.step2 }
-              </span>
-            </div>
-          </div>
-
-          { step === 1 ? (
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">{ t.leadModal.linkedinLabel }</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                    <Linkedin size={ 18 } />
-                  </div>
-                  <input
-                    type="text"
-                    name="linkedinUrl"
-                    maxLength={ FORM_MAX_LENGTH.leadUrl }
-                    value={ formik.values.linkedinUrl || "" }
-                    onChange={ formik.handleChange }
-                    onBlur={ formik.handleBlur }
-                    placeholder={ t.leadModal.linkedinPlaceholder }
-                    className="w-full pl-10 pr-4 py-3 border border-blue-200 rounded-xl outline-none focus:border-blue-500 focus:ring-0 text-sm"
-                  />
-                </div>
-                { enrichmentError && <p className="mt-2 text-xs text-red-500">{ enrichmentError }</p> }
-                { formik.touched.linkedinUrl && formik.errors.linkedinUrl && (
-                  <p className="mt-2 text-xs text-red-500">{ formik.errors.linkedinUrl }</p>
-                ) }
-                <p className="mt-2 text-xs text-gray-400">{ t.leadModal.helpText }</p>
-              </div>
-
-              <div className="flex flex-col space-y-3">
-                <button
-                  onClick={ handleEnrich }
-                  disabled={ loading || !formik.values.linkedinUrl }
-                  className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center"
-                >
-                  { loading ? <Loader2 className="animate-spin mr-2" size={ 18 } /> : <Check className="mr-2" size={ 18 } /> }
-                  { t.leadModal.enrichBtn }
-                </button>
-                <button
-                  onClick={ () => setStep(2) }
-                  className="w-full bg-white text-gray-600 font-bold py-3 px-4 rounded-xl border border-blue-200 hover:bg-gray-50 transition-all flex items-center justify-center"
-                >
-                  { t.leadModal.manualBtn }
-                  <ChevronRight className="ml-2" size={ 18 } />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={ formik.handleSubmit } className="space-y-4 pb-4" noValidate>
-              { apiError && !formik.errors.company && !formik.errors.email && !formik.errors.phone && (
-                <div className="p-3 rounded-lg bg-red-50 border border-red-100">
-                  <p className="text-sm font-medium text-red-700">{ apiError }</p>
-                </div>
-              ) }
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                    { t.leadModal.firstName } *
-                  </label>
-                  <input
-                    name="firstName"
-                    type="text"
-                    maxLength={ FORM_MAX_LENGTH.leadFirstName }
-                    placeholder={ t.leadModal.firstNamePlaceholder }
-                    value={ formik.values.firstName || "" }
-                    onChange={ formik.handleChange }
-                    onBlur={ formik.handleBlur }
-                    className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
-                  />
-                  { formik.touched.firstName && formik.errors.firstName && (
-                    <p className="mt-1 text-xs text-red-500">{ formik.errors.firstName }</p>
-                  ) }
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                    { t.leadModal.lastName } *
-                  </label>
-                  <input
-                    name="lastName"
-                    type="text"
-                    maxLength={ FORM_MAX_LENGTH.leadLastName }
-                    placeholder={ t.leadModal.lastNamePlaceholder }
-                    value={ formik.values.lastName || "" }
-                    onChange={ formik.handleChange }
-                    onBlur={ formik.handleBlur }
-                    className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
-                  />
-                  { formik.touched.lastName && formik.errors.lastName && (
-                    <p className="mt-1 text-xs text-red-500">{ formik.errors.lastName }</p>
-                  ) }
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                    { t.leadModal.position } *
-                  </label>
-                  <input
-                    name="currentPosition"
-                    type="text"
-                    maxLength={ FORM_MAX_LENGTH.leadPosition }
-                    placeholder={ t.leadModal.positionPlaceholder }
-                    value={ formik.values.currentPosition || "" }
-                    onChange={ formik.handleChange }
-                    onBlur={ formik.handleBlur }
-                    className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
-                  />
-                  { formik.touched.currentPosition && formik.errors.currentPosition && (
-                    <p className="mt-1 text-xs text-red-500">{ formik.errors.currentPosition }</p>
-                  ) }
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{ t.leadModal.company }</label>
-                  <input
-                    name="company"
-                    type="text"
-                    maxLength={ FORM_MAX_LENGTH.leadCompany }
-                    placeholder={ t.leadModal.companyPlaceholder }
-                    value={ formik.values.company || "" }
-                    onChange={ formik.handleChange }
-                    onBlur={ formik.handleBlur }
-                    className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
-                  />
-                  { (formik.touched.company || formik.errors.company) && formik.errors.company && (
-                    <p className="mt-1 text-xs text-red-500">{ formik.errors.company }</p>
-                  ) }
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{ t.leadModal.owner } *</label>
-                <select
-                  name="ownerName"
-                  value={ formik.values.ownerName || "" }
-                  onChange={ formik.handleChange }
-                  onBlur={ formik.handleBlur }
-                  className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0 bg-white"
-                >
-                  <option value="" disabled>
-                    { t.leadModal.selectOwner }
-                  </option>
-                  { owners.map((o) => (
-                    <option key={ o.id } value={ o.name }>
-                      { o.name }
-                    </option>
-                  )) }
-                </select>
-                { formik.touched.ownerName && formik.errors.ownerName && (
-                  <p className="mt-1 text-xs text-red-500">{ formik.errors.ownerName }</p>
-                ) }
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{ t.leadModal.email }</label>
-                  <input
-                    name="email"
-                    type="email"
-                    maxLength={ FORM_MAX_LENGTH.leadEmail }
-                    placeholder={ t.leadModal.emailPlaceholder }
-                    value={ formik.values.email || "" }
-                    onChange={ formik.handleChange }
-                    onBlur={ formik.handleBlur }
-                    className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
-                  />
-                  { formik.touched.email && formik.errors.email && (
-                    <p className="mt-1 text-xs text-red-500">{ formik.errors.email }</p>
-                  ) }
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{ t.leadModal.phone }</label>
-                  <input
-                    name="phone"
-                    type="tel"
-                    maxLength={ FORM_MAX_LENGTH.leadPhone }
-                    placeholder={ t.leadModal.phonePlaceholder }
-                    value={ formik.values.phone || "" }
-                    onChange={ formik.handleChange }
-                    onBlur={ formik.handleBlur }
-                    className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
-                  />
-                  { formik.touched.phone && formik.errors.phone && (
-                    <p className="mt-1 text-xs text-red-500">{ formik.errors.phone }</p>
-                  ) }
-                </div>
-              </div>
-
-              {/* LinkedIn URL field added to manual step */ }
+            ) }
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                  { t.leadModal.linkedinLabel }
+                  { t.leadModal.firstName } *
                 </label>
-                <div className="relative">
-                  <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={ 16 } />
-                  <input
-                    name="linkedinUrl"
-                    type="text"
-                    maxLength={ FORM_MAX_LENGTH.leadUrl }
-                    value={ formik.values.linkedinUrl || "" }
-                    onChange={ formik.handleChange }
-                    onBlur={ formik.handleBlur }
-                    placeholder={ t.leadModal.linkedinPlaceholderShort }
-                    className="w-full pl-10 pr-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
-                  />
-                </div>
-                { formik.touched.linkedinUrl && formik.errors.linkedinUrl && (
-                  <p className="mt-1 text-xs text-red-500">{ formik.errors.linkedinUrl }</p>
-                ) }
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{ t.leadModal.birthday }</label>
                 <input
-                  name="birthday"
-                  type="date"
-                  value={ formik.values.birthday || "" }
+                  name="firstName"
+                  type="text"
+                  maxLength={ FORM_MAX_LENGTH.leadFirstName }
+                  placeholder={ t.leadModal.firstNamePlaceholder }
+                  value={ formik.values.firstName || "" }
                   onChange={ formik.handleChange }
                   onBlur={ formik.handleBlur }
                   className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
                 />
-                { formik.touched.birthday && formik.errors.birthday && (
-                  <p className="mt-1 text-xs text-red-500">{ formik.errors.birthday }</p>
+                { formik.touched.firstName && formik.errors.firstName && (
+                  <p className="mt-1 text-xs text-red-500">{ formik.errors.firstName }</p>
                 ) }
               </div>
-
-              <div className="pt-4 flex space-x-3">
-                <button
-                  type="button"
-                  onClick={ () => setStep(1) }
-                  className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition-all"
-                >
-                  { t.leadModal.back }
-                </button>
-                <button
-                  type="submit"
-                  className="flex-[2] bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all"
-                >
-                  { t.leadModal.save }
-                </button>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                  { t.leadModal.lastName } *
+                </label>
+                <input
+                  name="lastName"
+                  type="text"
+                  maxLength={ FORM_MAX_LENGTH.leadLastName }
+                  placeholder={ t.leadModal.lastNamePlaceholder }
+                  value={ formik.values.lastName || "" }
+                  onChange={ formik.handleChange }
+                  onBlur={ formik.handleBlur }
+                  className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
+                />
+                { formik.touched.lastName && formik.errors.lastName && (
+                  <p className="mt-1 text-xs text-red-500">{ formik.errors.lastName }</p>
+                ) }
               </div>
-            </form>
-          ) }
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                  { t.leadModal.position } *
+                </label>
+                <input
+                  name="currentPosition"
+                  type="text"
+                  maxLength={ FORM_MAX_LENGTH.leadPosition }
+                  placeholder={ t.leadModal.positionPlaceholder }
+                  value={ formik.values.currentPosition || "" }
+                  onChange={ formik.handleChange }
+                  onBlur={ formik.handleBlur }
+                  className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
+                />
+                { formik.touched.currentPosition && formik.errors.currentPosition && (
+                  <p className="mt-1 text-xs text-red-500">{ formik.errors.currentPosition }</p>
+                ) }
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{ t.leadModal.company }</label>
+                <input
+                  name="company"
+                  type="text"
+                  maxLength={ FORM_MAX_LENGTH.leadCompany }
+                  placeholder={ t.leadModal.companyPlaceholder }
+                  value={ formik.values.company || "" }
+                  onChange={ formik.handleChange }
+                  onBlur={ formik.handleBlur }
+                  className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
+                />
+                { (formik.touched.company || formik.errors.company) && formik.errors.company && (
+                  <p className="mt-1 text-xs text-red-500">{ formik.errors.company }</p>
+                ) }
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{ t.leadModal.owner } *</label>
+              <select
+                name="ownerName"
+                value={ formik.values.ownerName || "" }
+                onChange={ formik.handleChange }
+                onBlur={ formik.handleBlur }
+                className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0 bg-white"
+              >
+                <option value="" disabled>
+                  { t.leadModal.selectOwner }
+                </option>
+                { owners.map((o) => (
+                  <option key={ o.id } value={ o.name }>
+                    { o.name }
+                  </option>
+                )) }
+              </select>
+              { formik.touched.ownerName && formik.errors.ownerName && (
+                <p className="mt-1 text-xs text-red-500">{ formik.errors.ownerName }</p>
+              ) }
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{ t.leadModal.email }</label>
+                <input
+                  name="email"
+                  type="email"
+                  maxLength={ FORM_MAX_LENGTH.leadEmail }
+                  placeholder={ t.leadModal.emailPlaceholder }
+                  value={ formik.values.email || "" }
+                  onChange={ formik.handleChange }
+                  onBlur={ formik.handleBlur }
+                  className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
+                />
+                { formik.touched.email && formik.errors.email && (
+                  <p className="mt-1 text-xs text-red-500">{ formik.errors.email }</p>
+                ) }
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{ t.leadModal.phone }</label>
+                <input
+                  name="phone"
+                  type="tel"
+                  maxLength={ FORM_MAX_LENGTH.leadPhone }
+                  placeholder={ t.leadModal.phonePlaceholder }
+                  value={ formik.values.phone || "" }
+                  onChange={ formik.handleChange }
+                  onBlur={ formik.handleBlur }
+                  className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
+                />
+                { formik.touched.phone && formik.errors.phone && (
+                  <p className="mt-1 text-xs text-red-500">{ formik.errors.phone }</p>
+                ) }
+              </div>
+            </div>
+
+            {/* LinkedIn URL field added to manual step */ }
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                { t.leadModal.linkedinLabel }
+              </label>
+              <div className="relative">
+                <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={ 16 } />
+                <input
+                  name="linkedinUrl"
+                  type="text"
+                  maxLength={ FORM_MAX_LENGTH.leadUrl }
+                  value={ formik.values.linkedinUrl || "" }
+                  onChange={ formik.handleChange }
+                  onBlur={ formik.handleBlur }
+                  placeholder={ t.leadModal.linkedinPlaceholderShort }
+                  className="w-full pl-10 pr-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
+                />
+              </div>
+              { formik.touched.linkedinUrl && formik.errors.linkedinUrl && (
+                <p className="mt-1 text-xs text-red-500">{ formik.errors.linkedinUrl }</p>
+              ) }
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{ t.leadModal.birthday }</label>
+              <input
+                name="birthday"
+                type="date"
+                value={ formik.values.birthday || "" }
+                onChange={ formik.handleChange }
+                onBlur={ formik.handleBlur }
+                className="w-full px-4 py-2.5 border border-blue-200 rounded-lg text-sm outline-none focus:border-blue-500 focus:ring-0"
+              />
+              { formik.touched.birthday && formik.errors.birthday && (
+                <p className="mt-1 text-xs text-red-500">{ formik.errors.birthday }</p>
+              ) }
+            </div>
+
+            <div className="pt-4 flex space-x-3">
+              <button
+                type="submit"
+                className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all"
+              >
+                { t.leadModal.save }
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
