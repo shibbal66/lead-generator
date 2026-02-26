@@ -8,9 +8,10 @@ interface LeadCardProps {
   onClick: (lead: Lead) => void;
   onAddDeal?: (lead: Lead) => void;
   dealCaptureTitle?: string;
+  commentsText?: string;
 }
 
-const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick, onAddDeal, dealCaptureTitle }) => {
+const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick, onAddDeal, dealCaptureTitle, commentsText }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: lead.id,
     data: { lead }
@@ -89,7 +90,7 @@ const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick, onAddDeal, dealCaptu
       <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center text-[10px] text-gray-400">
         <div className="flex items-center">
           <MessageSquare size={10} className="mr-1" />
-          {commentCount} Kommentare
+          {commentCount} {commentsText || "Kommentare"}
         </div>
         <div className="flex items-center">
           {isClosed && <DollarSign size={10} className="text-emerald-500 mr-1" />}
