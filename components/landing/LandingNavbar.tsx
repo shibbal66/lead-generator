@@ -71,7 +71,7 @@ const LandingNavbar: React.FC = () => {
           <div className="hidden lg:flex items-center gap-3">
             <Link
               to="/login"
-              className={`text-sm font-semibold px-4 py-2 rounded-lg transition-all ${isDark ? "text-gray-300 hover:text-white hover:bg-white/5" : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"}`}
+              className={`text-sm font-semibold px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 active:scale-100 shadow-md hover:shadow-lg ${isDark ? "bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 hover:shadow-white/10" : "bg-white text-gray-700 hover:text-blue-600 hover:bg-gray-50 border border-gray-200 hover:shadow-gray-200/50"}`}
             >
               Log in
             </Link>
