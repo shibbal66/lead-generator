@@ -10,12 +10,6 @@
       "description": "Create an account in under a minute and invite your team.",
       "action": "Create account",
       "href": "/signup"
-    },
-    {
-      "title": "Email support",
-      "description": "Reach out for help, feature requests, or partnership inquiries.",
-      "action": "Send email",
-      "href": "mailto:support@leadgenpro.example.com"
     }
   ]
 }

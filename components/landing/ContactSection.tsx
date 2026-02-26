@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Mail, ArrowRight, UserPlus, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, UserPlus, Sparkles, Zap } from "lucide-react";
 import LandingDarkBackground from "./LandingDarkBackground";
 import { landingContact } from "@/data/landing";
 
@@ -10,13 +10,18 @@ const ContactSection: React.FC = () => {
   return (
     <LandingDarkBackground id="contact" className="py-20 lg:py-28 scroll-mt-20">
       <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-
         <div className="animate-fade-in-up">
           <div className="group/title inline-block">
             <div className="landing-dark-badge inline-flex items-center gap-2 rounded-full px-4 py-2 mb-4">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 landing-dark-accent" style={{ backgroundColor: "var(--landing-dark-accent)" }} />
-                <span className="relative inline-flex rounded-full h-2 w-2 landing-dark-accent" style={{ backgroundColor: "var(--landing-dark-accent)" }} />
+                <span
+                  className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 landing-dark-accent"
+                  style={{ backgroundColor: "var(--landing-dark-accent)" }}
+                />
+                <span
+                  className="relative inline-flex rounded-full h-2 w-2 landing-dark-accent"
+                  style={{ backgroundColor: "var(--landing-dark-accent)" }}
+                />
               </span>
               <p className="text-xs font-bold uppercase tracking-widest">{d.badge}</p>
             </div>
@@ -26,9 +31,7 @@ const ContactSection: React.FC = () => {
             <div className="mt-3 h-1 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 w-0 group-hover/title:w-full transition-all duration-500 ease-out" />
           </div>
 
-          <p className="landing-dark-description mt-5 text-base leading-relaxed max-w-md font-light">
-            {d.description}
-          </p>
+          <p className="landing-dark-description mt-5 text-base leading-relaxed max-w-md font-light">{d.description}</p>
 
           <div className="mt-6 inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-400/10 border border-amber-400/20">
             <Sparkles size={14} className="text-amber-400 shrink-0" />
@@ -49,9 +52,8 @@ const ContactSection: React.FC = () => {
 
         <div className="flex flex-col gap-4">
           {d.options.map((opt, i) => {
-            const isMailto = opt.href.startsWith("mailto:");
-            const Icon = isMailto ? Mail : UserPlus;
-            const ActionIcon = isMailto ? Mail : ArrowRight;
+            const Icon = UserPlus;
+            const ActionIcon = ArrowRight;
 
             const cardClass =
               "group relative block rounded-3xl border-2 p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-blue-400/40 hover:shadow-2xl hover:shadow-blue-500/20 hover:bg-white/8 active:scale-[0.99] animate-fade-in-up overflow-hidden";
@@ -65,17 +67,17 @@ const ContactSection: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="landing-dark-heading text-lg font-extrabold">{opt.title}</h3>
-                    <Zap size={13} className="landing-dark-accent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                    <Zap
+                      size={13}
+                      className="landing-dark-accent opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    />
                   </div>
                   <p className="landing-dark-description text-sm leading-relaxed font-light group-hover:text-gray-300 transition-colors">
                     {opt.description}
                   </p>
                   <span className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-sm font-bold text-white transition-all duration-200 group-hover:shadow-lg group-hover:shadow-blue-600/40 group-hover:scale-[1.04]">
                     {opt.action}
-                    <ActionIcon
-                      size={15}
-                      className={isMailto ? "group-hover:scale-110 transition-transform duration-200" : "group-hover:translate-x-1 transition-transform duration-200"}
-                    />
+                    <ActionIcon size={15} className="group-hover:translate-x-1 transition-transform duration-200" />
                   </span>
                 </div>
 
@@ -85,12 +87,12 @@ const ContactSection: React.FC = () => {
               </div>
             );
 
-            const cardStyle = { animationDelay: `${i * 80}ms`, borderColor: "var(--landing-dark-card-border)", backgroundColor: "var(--landing-dark-card-bg)" };
-            return isMailto ? (
-              <a key={opt.title} href={opt.href} className={cardClass} style={cardStyle}>
-                {content}
-              </a>
-            ) : (
+            const cardStyle = {
+              animationDelay: `${i * 80}ms`,
+              borderColor: "var(--landing-dark-card-border)",
+              backgroundColor: "var(--landing-dark-card-bg)"
+            };
+            return (
               <Link key={opt.title} to={opt.href} className={cardClass} style={cardStyle}>
                 {content}
               </Link>
