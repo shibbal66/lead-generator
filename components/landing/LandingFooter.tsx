@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { BarChart3, ArrowUpRight, Mail } from "lucide-react";
+import { BarChart3, ArrowUpRight } from "lucide-react";
 
 function scrollToSection(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
   e.preventDefault();
@@ -13,7 +13,7 @@ const NAV_LINKS = [
   { href: "#about", label: "About" },
   { href: "#value", label: "Features" },
   { href: "#faq", label: "FAQ" },
-  { href: "#contact", label: "Contact" },
+  { href: "#contact", label: "Contact" }
 ];
 
 const LandingFooter: React.FC = () => {
@@ -22,9 +22,10 @@ const LandingFooter: React.FC = () => {
   return (
     <footer className="landing-footer">
       <div className="landing-section-inner py-16 lg:py-20">
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16 pb-14 border-b" style={{ borderColor: "var(--landing-footer-border-strong)" }}>
-
+        <div
+          className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16 pb-14 border-b"
+          style={{ borderColor: "var(--landing-footer-border-strong)" }}
+        >
           <div className="lg:col-span-1 flex flex-col gap-5">
             <Link to="/" className="inline-flex items-center gap-2.5 group w-fit">
               <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/40 group-hover:scale-110 group-hover:shadow-blue-500/60 transition-all duration-300">
@@ -35,21 +36,11 @@ const LandingFooter: React.FC = () => {
             <p className="landing-footer-muted text-sm leading-relaxed max-w-xs font-light">
               The all-in-one lead generation platform built for modern sales teams.
             </p>
-            <a
-              href="mailto:support@leadgenpro.example.com"
-              className="landing-footer-button group inline-flex items-center gap-2 w-fit rounded-2xl border px-4 py-2.5 text-sm font-semibold hover:border-blue-400/40 hover:bg-blue-500/10 transition-all duration-200"
-            >
-              <Mail size={14} className="text-blue-400" />
-              support@leadgenpro.com
-              <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200" />
-            </a>
           </div>
 
           <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-10">
             <div>
-              <h3 className="landing-footer-muted text-xs font-bold uppercase tracking-widest mb-5">
-                Navigate
-              </h3>
+              <h3 className="landing-footer-muted text-xs font-bold uppercase tracking-widest mb-5">Navigate</h3>
               <nav className="flex flex-col gap-3">
                 {NAV_LINKS.map(({ href, label }) => (
                   <a
@@ -66,15 +57,19 @@ const LandingFooter: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="landing-footer-muted text-xs font-bold uppercase tracking-widest mb-5">
-                Account
-              </h3>
+              <h3 className="landing-footer-muted text-xs font-bold uppercase tracking-widest mb-5">Account</h3>
               <div className="flex flex-col gap-3">
-                <Link to="/login" className="landing-footer-link group flex items-center gap-1.5 text-sm transition-colors duration-200 w-fit">
+                <Link
+                  to="/login"
+                  className="landing-footer-link group flex items-center gap-1.5 text-sm transition-colors duration-200 w-fit"
+                >
                   <span className="w-0 group-hover:w-2 h-px bg-blue-400 transition-all duration-300 rounded-full" />
                   Log in
                 </Link>
-                <Link to="/signup" className="landing-footer-link group flex items-center gap-1.5 text-sm transition-colors duration-200 w-fit">
+                <Link
+                  to="/signup"
+                  className="landing-footer-link group flex items-center gap-1.5 text-sm transition-colors duration-200 w-fit"
+                >
                   <span className="w-0 group-hover:w-2 h-px bg-blue-400 transition-all duration-300 rounded-full" />
                   Sign up
                 </Link>
@@ -82,9 +77,7 @@ const LandingFooter: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="landing-footer-muted text-xs font-bold uppercase tracking-widest mb-5">
-                Contact
-              </h3>
+              <h3 className="landing-footer-muted text-xs font-bold uppercase tracking-widest mb-5">Contact</h3>
               <a
                 href="#contact"
                 onClick={(e) => scrollToSection(e, "#contact")}
@@ -95,9 +88,11 @@ const LandingFooter: React.FC = () => {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
                 </span>
                 Get in touch
-                <ArrowUpRight size={13} className="opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200" />
+                <ArrowUpRight
+                  size={13}
+                  className="opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200"
+                />
               </a>
-            
             </div>
           </div>
         </div>
