@@ -40,9 +40,12 @@ const LandingNavbar: React.FC = () => {
         <div className="flex items-center justify-between h-16 lg:h-18">
           <Link
             to="/"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             className={`flex items-center gap-2 font-bold tracking-tight transition-transform hover:scale-105 active:scale-100 ${isDark ? "text-white" : "text-gray-900"}`}
           >
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-lg ${isDark ? "bg-blue-500 shadow-blue-500/30" : "bg-blue-600 shadow-blue-500/25"}`}>
+            <div
+              className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-lg ${isDark ? "bg-blue-500 shadow-blue-500/30" : "bg-blue-600 shadow-blue-500/25"}`}
+            >
               <BarChart3 className="text-white" size={20} />
             </div>
             <span className="text-lg">LeadGen Pro</span>
@@ -55,7 +58,9 @@ const LandingNavbar: React.FC = () => {
                 href={href}
                 onClick={(e) => scrollToSection(e, href)}
                 className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  isDark ? "text-gray-300 hover:text-white hover:bg-white/5" : "text-gray-600 hover:text-blue-600 hover:bg-blue-50/50"
+                  isDark
+                    ? "text-gray-300 hover:text-white hover:bg-white/5"
+                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50/50"
                 }`}
               >
                 {label}
@@ -89,7 +94,9 @@ const LandingNavbar: React.FC = () => {
         </div>
 
         {mobileOpen && (
-          <div className={`lg:hidden py-4 border-t ${isDark ? "border-white/10" : "border-gray-100"} animate-fade-in-up`}>
+          <div
+            className={`lg:hidden py-4 border-t ${isDark ? "border-white/10" : "border-gray-100"} animate-fade-in-up`}
+          >
             <nav className="flex flex-col gap-1">
               {NAV_LINKS.map(({ href, label }) => (
                 <a
@@ -104,7 +111,9 @@ const LandingNavbar: React.FC = () => {
                   {label}
                 </a>
               ))}
-              <div className={`mt-4 pt-4 flex flex-col gap-2 ${isDark ? "border-white/10" : "border-gray-100"} border-t`}>
+              <div
+                className={`mt-4 pt-4 flex flex-col gap-2 ${isDark ? "border-white/10" : "border-gray-100"} border-t`}
+              >
                 <Link
                   to="/login"
                   onClick={() => setMobileOpen(false)}

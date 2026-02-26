@@ -27,7 +27,11 @@ const LandingFooter: React.FC = () => {
           style={{ borderColor: "var(--landing-footer-border-strong)" }}
         >
           <div className="lg:col-span-1 flex flex-col gap-5">
-            <Link to="/" className="inline-flex items-center gap-2.5 group w-fit">
+            <Link
+              to="/"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="inline-flex items-center gap-2.5 group w-fit"
+            >
               <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/40 group-hover:scale-110 group-hover:shadow-blue-500/60 transition-all duration-300">
                 <BarChart3 size={18} className="text-white" />
               </div>
@@ -98,7 +102,11 @@ const LandingFooter: React.FC = () => {
         </div>
 
         <div className="pt-12 flex flex-col items-center gap-6">
-          <Link to="/" className="group relative overflow-hidden">
+          <Link
+            to="/"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="group relative overflow-hidden"
+          >
             <span className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white/20 via-white/10 to-white/20 group-hover:from-blue-400/40 group-hover:via-white/20 group-hover:to-indigo-400/40 transition-all duration-500 select-none">
               LeadGen Pro
             </span>
