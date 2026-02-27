@@ -5,7 +5,7 @@ import { FORM_MAX_LENGTH } from "../constants";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { createTask, getTasks, updateTask, deleteTask } from "../store/actions/taskActions";
 import { getLeads } from "../store/actions/leadActions";
-import { getUsers } from "../store/actions/userActions";
+import { getUsers, getUserById } from "../store/actions/userActions";
 
 interface TodoDashboardProps
 {
@@ -88,8 +88,23 @@ const TodoDashboard: React.FC<TodoDashboardProps> = ({ lang, refreshKey = 0 }) =
   useEffect(() =>
   {
     void dispatch(getLeads({ page: 1, limit: 500 }));
-    void dispatch(getUsers({ page: 1, limit: 200 }));
-  }, [dispatch, refreshKey]);
+
+    const fetchUsersForTeam = async () =>
+    {
+      if (!currentUserId) return;
+      try
+      {
+        const currentUser = await dispatch(getUserById(currentUserId)).unwrap();
+        if (!currentUser?.teamId) return;
+        void dispatch(getUsers({ page: 1, limit: 200, teamId: currentUser.teamId }));
+      } catch (error)
+      {
+        console.error("[TodoDashboard] failed to load users for team", error);
+      }
+    };
+
+    void fetchUsersForTeam();
+  }, [dispatch, refreshKey, currentUserId]);
 
   useEffect(() =>
   {
