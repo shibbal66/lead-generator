@@ -215,7 +215,7 @@ const DealModal: React.FC<DealModalProps> = ({ lead, projects, owners, lang, onC
                   onChange={ formik.handleChange }
                 >
                   <option value="CONSULTING">CONSULTING</option>
-                  <option value="ONLINE_TRADING">ONLINE TRADING</option>
+                  <option value="ONLINE_TRADING">ONLINE TRAINING</option>
                   <option value="OFF_SITE">OFF SITE</option>
                   <option value="OTHERS">OTHER</option>
                 </select>
