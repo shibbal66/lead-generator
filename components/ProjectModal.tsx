@@ -65,9 +65,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
         projectManagerId: Yup.string()
           .trim()
           .required(lang === "de" ? "Projektmanager ist erforderlich" : "Project manager is required"),
-        description: Yup.string()
-          .trim()
-          .max(FORM_MAX_LENGTH.projectDescription, lang === "de" ? `Max. ${FORM_MAX_LENGTH.projectDescription} Zeichen` : `Max. ${FORM_MAX_LENGTH.projectDescription} characters`)
+        description: Yup.string().trim()
       }),
     [lang]
   );
@@ -185,7 +183,6 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
               </label>
               <textarea
                 name="description"
-                maxLength={FORM_MAX_LENGTH.projectDescription}
                 value={formik.values.description}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
