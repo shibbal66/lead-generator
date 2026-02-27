@@ -325,6 +325,25 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
     return [];
   }, [currentProject?.title, leadProjectTitles]);
 
+  const getDealTypeLabel = (dealType: Deal["type"]): string =>
+  {
+    const raw = String(dealType).toUpperCase().replace(/\s+/g, "_");
+    switch (raw)
+    {
+      case "BERATUNG":
+      case "CONSULTING":
+        return t.analytics.kpiConsulting;
+      case "ONLINE_TRAINING":
+      case "ONLINE_TRADING":
+        return t.analytics.kpiTraining;
+      case "OFFSITE":
+      case "OFF_SITE":
+        return t.analytics.kpiOffsite;
+      default:
+        return t.analytics.kpiOther;
+    }
+  };
+
   const totalDealSumByCurrency = useMemo(() =>
   {
     const sums: Record<string, number> = {};
@@ -799,7 +818,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                         <p className="text-xs font-bold text-gray-900 truncate">{ deal.name }</p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                            { deal.type }
+                            { getDealTypeLabel(deal.type) }
                           </span>
                           <span className="text-[10px] text-gray-400 flex items-center">
                             <Calendar size={ 10 } className="mr-1" />
