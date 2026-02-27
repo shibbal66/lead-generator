@@ -84,5 +84,13 @@ export const dealApi = {
       page: response.page || params?.page || 1,
       limit: response.limit || params?.limit || 10
     };
+  },
+
+  deleteDeal: async (dealId: string): Promise<{ message: string }> => {
+    const response = await apiRequest(`/deal/${dealId}`, { method: "DELETE" });
+
+    return {
+      message: response.message || "Deal deleted successfully"
+    };
   }
 };

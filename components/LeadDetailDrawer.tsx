@@ -38,6 +38,7 @@ import
   } from "lucide-react";
 import { FORM_MAX_LENGTH, STAGE_COLORS, STAGES } from "../constants";
 import { api } from "../services/api";
+import { dealApi } from "../services/dealApi";
 import { translations, Language } from "../translations";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import { useAppDispatch } from "../store/hooks";
@@ -89,6 +90,7 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
   const [leadDeals, setLeadDeals] = useState<Deal[]>([]);
   const [leadTodos, setLeadTodos] = useState<Todo[]>([]);
   const [updatingTodoId, setUpdatingTodoId] = useState<string | null>(null);
+  const [deletingDealId, setDeletingDealId] = useState<string | null>(null);
 
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState("");
@@ -443,6 +445,29 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
     reader.readAsDataURL(file);
   };
 
+  const handleDeleteDeal = async (dealId: string) =>
+  {
+    const confirmed = window.confirm(
+      lang === "de"
+        ? "Möchten Sie diesen Abschluss wirklich löschen?"
+        : "Are you sure you want to delete this deal?"
+    );
+    if (!confirmed) return;
+
+    setDeletingDealId(dealId);
+    try
+    {
+      await dealApi.deleteDeal(dealId);
+      setLeadDeals((prev) => prev.filter((deal) => deal.id !== dealId));
+    } catch (error)
+    {
+      console.error("[LeadDetailDrawer] delete deal failed", error);
+    } finally
+    {
+      setDeletingDealId(null);
+    }
+  };
+
   const downloadFile = (file: LeadFile) =>
   {
     const link = document.createElement("a");
@@ -783,10 +808,25 @@ const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
                           </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-extrabold text-emerald-600">
-                          { deal.totalAmount.toLocaleString(locale) } { deal.currency === "USD" ? "$" : "€" }
-                        </p>
+                      <div className="flex items-start gap-2">
+                        <div className="text-right">
+                          <p className="text-sm font-extrabold text-emerald-600">
+                            { deal.totalAmount.toLocaleString(locale) } { deal.currency === "USD" ? "$" : "€" }
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={ () => handleDeleteDeal(deal.id) }
+                          disabled={ deletingDealId === deal.id }
+                          className="p-1.5 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          title={ t.common.delete }
+                        >
+                          { deletingDealId === deal.id ? (
+                            <Loader2 size={ 14 } className="animate-spin" />
+                          ) : (
+                            <Trash size={ 14 } />
+                          ) }
+                        </button>
                       </div>
                     </div>
                   ))
